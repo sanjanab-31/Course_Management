@@ -1,16 +1,17 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAegGouTmydFNjdng1wpPMLoEu0uuVW3Rg",
+    authDomain: "esa-billing-website-1ec57.firebaseapp.com",
+    projectId: "esa-billing-website-1ec57",
+    storageBucket: "esa-billing-website-1ec57.firebasestorage.app",
+    messagingSenderId: "49467332849",
+    appId: "1:49467332849:web:155de5e99c3a11bc0db150",
+    measurementId: "G-WDJT5Q3QRQ"
 };
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);

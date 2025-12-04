@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { auth, db } from "../config/firebase";
+import { auth } from "../config/firebase";
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -7,12 +7,18 @@ import {
     sendPasswordResetEmail,
     onAuthStateChanged,
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
 export function useAuth() {
     return useContext(AuthContext);
+}
+
+// Helper function to determine role from email
+function getRoleFromEmail(email) {
+    if (email.includes('admin')) return 'admin';
+    if (email.includes('teacher')) return 'teacher';
+    return 'student';
 }
 
 export function AuthProvider({ children }) {
@@ -22,27 +28,15 @@ export function AuthProvider({ children }) {
 
     async function signup(email, password, name, role) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // Store user details and role in Firestore
-        await setDoc(doc(db, "users", user.uid), {
-            name,
-            email,
-            role,
-            createdAt: new Date().toISOString()
-        });
-
-        setUserRole(role);
+        // Set role from email pattern
+        setUserRole(getRoleFromEmail(email));
         return userCredential;
     }
 
     async function login(email, password) {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        // Fetch user role
-        const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-        if (userDoc.exists()) {
-            setUserRole(userDoc.data().role);
-        }
+        // Set role from email pattern
+        setUserRole(getRoleFromEmail(userCredential.user.email));
         return userCredential;
     }
 
@@ -56,13 +50,10 @@ export function AuthProvider({ children }) {
     }
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
             setCurrentUser(user);
             if (user) {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    setUserRole(userDoc.data().role);
-                }
+                setUserRole(getRoleFromEmail(user.email));
             } else {
                 setUserRole(null);
             }
@@ -87,3 +78,4 @@ export function AuthProvider({ children }) {
         </AuthContext.Provider>
     );
 }
+

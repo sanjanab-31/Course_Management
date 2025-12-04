@@ -29,8 +29,8 @@ const Login = () => {
             await login(email, password);
             navigate('/'); // Redirect to dashboard/home after login
         } catch (err) {
-            setError('Failed to log in. Please check your credentials.');
             console.error(err);
+            setError('Failed to log in: ' + err.message);
         } finally {
             setLoading(false);
         }
@@ -41,6 +41,51 @@ const Login = () => {
         { id: 'teacher', label: 'Teacher', icon: BookOpen },
         { id: 'admin', label: 'Admin', icon: Shield },
     ];
+
+    async function handleSetupDemo() {
+        const demoUsers = [
+            { email: 'student@gmail.com', password: 'Student123', name: 'Demo Student', role: 'student' },
+            { email: 'teacher@gmail.com', password: 'Teacher123', name: 'Demo Teacher', role: 'teacher' },
+            { email: 'admin@gmail.com', password: 'Admin123', name: 'Demo Admin', role: 'admin' }
+        ];
+
+        setLoading(true);
+        try {
+            for (const user of demoUsers) {
+                try {
+                    await signup(user.email, user.password, user.name, user.role);
+                    console.log(`Created ${user.role}`);
+                    // We need to logout immediately because signup logs us in
+                    await login(user.email, user.password); // Re-verify login or just logout
+                    // Actually signup returns userCredential, so we are logged in.
+                    // We just need to logout to create the next one.
+                    // But wait, useAuth().logout might not be available directly inside the loop if we rely on context state updates which might be async.
+                    // However, firebase auth is synchronous-ish for the object state but the promise resolves.
+                    // Let's just use the auth instance directly or the context function.
+                    // Context logout calls signOut(auth).
+
+                    // Small delay to ensure firestore write completes if needed, though await setDoc in signup should handle it.
+                } catch (e) {
+                    if (e.code === 'auth/email-already-in-use') {
+                        console.log(`${user.email} already exists.`);
+                    } else {
+                        throw e;
+                    }
+                }
+                // Force logout to clear session for next creation
+                const { signOut } = await import('firebase/auth');
+                const { auth } = await import('../config/firebase');
+                await signOut(auth);
+            }
+            setError('');
+            alert('Demo accounts created! You can now login.');
+        } catch (err) {
+            console.error(err);
+            setError('Setup failed: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <AuthLayout
@@ -177,13 +222,20 @@ const Login = () => {
                     </div>
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-6 grid grid-cols-1 gap-3">
                     <Link
                         to="/signup"
                         className="w-full flex justify-center py-2 px-4 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                     >
                         Create an account
                     </Link>
+                    <button
+                        type="button"
+                        onClick={handleSetupDemo}
+                        className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                    >
+                        Setup Demo Accounts
+                    </button>
                 </div>
             </div>
         </AuthLayout>
