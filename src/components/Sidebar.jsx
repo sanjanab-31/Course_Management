@@ -78,11 +78,11 @@ const Sidebar = () => {
             {/* Logo Section */}
             <div className="p-5 border-b border-gray-200">
                 <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <BookOpenCheck className="w-6 h-6 text-white" />
+                    <div className="w-10 h-12 bg-white rounded-full flex items-center justify-center">
+                        <img src="https://res.cloudinary.com/dfflvhcbx/image/upload/v1764820736/download-removebg-preview_i5gn9t.png" alt="" /> 
                     </div>
                     <div>
-                        <h1 className="text-base font-bold text-gray-900">KLU LMS</h1>
+                        <h1 className="text-base font-bold text-gray-900">SRI ESHWAR</h1>
                         <p className="text-xs text-gray-500">Learning</p>
                         <p className="text-xs text-gray-500">Management System</p>
                     </div>
