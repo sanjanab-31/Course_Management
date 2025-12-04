@@ -8,6 +8,8 @@ import {
     subscribeToCoursesUpdates,
     subscribeToStudentEnrollments
 } from '../services/courseService';
+import { checkCourseCompletion } from '../services/certificateService';
+import CertificateGenerator from './CertificateGenerator';
 import {
     BookOpen,
     Clock,
@@ -29,6 +31,7 @@ const MyCoursesPage = () => {
     const [loading, setLoading] = useState(false);
     const [enrolling, setEnrolling] = useState(null);
     const [notification, setNotification] = useState(null);
+    const [certificateData, setCertificateData] = useState({});
 
     // Fetch courses and enrollments from Firebase
     useEffect(() => {
@@ -73,6 +76,22 @@ const MyCoursesPage = () => {
             unsubscribeEnrollments();
         };
     }, [currentUser]);
+
+    // Check certificate eligibility for enrolled courses
+    useEffect(() => {
+        const checkCertificates = async () => {
+            if (!currentUser || enrollments.length === 0) return;
+
+            const certData = {};
+            for (const enrollment of enrollments) {
+                const completion = await checkCourseCompletion(enrollment.courseId, currentUser.uid);
+                certData[enrollment.courseId] = completion;
+            }
+            setCertificateData(certData);
+        };
+
+        checkCertificates();
+    }, [enrollments, currentUser]);
 
     // Show notification
     const showNotification = (message, type = 'success') => {
@@ -373,6 +392,15 @@ const MyCoursesPage = () => {
                                                         </>
                                                     )}
                                                 </button>
+                                            ) : course.status === 'completed' && certificateData[course.id]?.isCompleted ? (
+                                                // Show certificate button for completed courses with all requirements met
+                                                <CertificateGenerator
+                                                    studentName={currentUser?.displayName || currentUser?.email || 'Student'}
+                                                    courseName={course.name}
+                                                    grade={certificateData[course.id]?.grade || 'N/A'}
+                                                    completionDate={new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                    onDownload={() => showNotification('Certificate downloaded successfully!', 'success')}
+                                                />
                                             ) : (
                                                 <button
                                                     className={`flex-1 ${colors.bg} text-white px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2 font-medium text-sm`}
@@ -385,6 +413,28 @@ const MyCoursesPage = () => {
                                                 Details
                                             </button>
                                         </div>
+
+                                        {/* Certificate Eligibility Info for Completed Courses */}
+                                        {course.status === 'completed' && certificateData[course.id] && (
+                                            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                                {certificateData[course.id].isCompleted ? (
+                                                    <div className="flex items-center gap-2 text-sm text-green-600">
+                                                        <CheckCircle className="w-4 h-4" />
+                                                        <span className="font-medium">
+                                                            Certificate Ready! Grade: {certificateData[course.id].grade} ({certificateData[course.id].percentage}%)
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-sm text-gray-600">
+                                                        <p className="font-medium mb-1">Certificate Requirements:</p>
+                                                        <p className="text-xs">
+                                                            • Quizzes: {certificateData[course.id].completedQuizzes || 0}/3 completed<br />
+                                                            • Assignments: {certificateData[course.id].submittedAssignments || 0}/2 submitted
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );
