@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from './AuthLayout';
@@ -10,6 +10,18 @@ const Signup = () => {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('student');
     const [error, setError] = useState('');
+    
+    // Auto-dismiss error after 5 seconds or on any click within the page
+    useEffect(() => {
+        if (!error) return;
+        const timer = setTimeout(() => setError(''), 5000);
+        const handleAnyClick = () => setError('');
+        window.addEventListener('click', handleAnyClick, { once: true });
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('click', handleAnyClick);
+        };
+    }, [error]);
     const [loading, setLoading] = useState(false);
     const { signup } = useAuth();
     const navigate = useNavigate();

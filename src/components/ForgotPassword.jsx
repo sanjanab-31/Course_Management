@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from './AuthLayout';
@@ -10,6 +10,24 @@ const ForgotPassword = () => {
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const { resetPassword } = useAuth();
+
+    // Auto-dismiss error or success message after 5 seconds or on any click
+    useEffect(() => {
+        if (!error && !message) return;
+        const timer = setTimeout(() => {
+            setError('');
+            setMessage('');
+        }, 5000);
+        const handleAnyClick = () => {
+            setError('');
+            setMessage('');
+        };
+        window.addEventListener('click', handleAnyClick, { once: true });
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('click', handleAnyClick);
+        };
+    }, [error, message]);
 
     async function handleSubmit(e) {
         e.preventDefault();

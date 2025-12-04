@@ -12,10 +12,10 @@ const AuthLayout = ({ children, title, subtitle }) => {
                     <div >
                         <img src="https://res.cloudinary.com/dfflvhcbx/image/upload/v1764820736/download-removebg-preview_i5gn9t.png" alt="" /> 
                     </div>
-                    <h1 className="text-4xl font-bold text-white mb-6 tracking-tight leading-tight">
+                    <h1 className="text-4xl font-bold text-white mt-8 mb-4 tracking-tight leading-tight text-center">
                         Sri Eshwar <br /> Course Management
                     </h1>
-                    <p className="text-blue-100 text-lg max-w-md leading-relaxed">
+                    <p className="text-blue-100 text-lg max-w-md leading-relaxed text-center">
                         Your gateway to seamless learning and academic excellence.
                     </p>
                 </div>
@@ -28,7 +28,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
             {/* Right Side - Form */}
             <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:w-1/2 xl:px-24 bg-white">
                 <div className="mx-auto w-full max-w-sm lg:max-w-md">
-                    <div className="text-center lg:text-left mb-10">
+                    <div className="text-center mb-10">
                         {/* Mobile Logo (visible only on small screens) */}
                         <div className="lg:hidden flex justify-center mb-6">
                             <div >
@@ -36,11 +36,11 @@ const AuthLayout = ({ children, title, subtitle }) => {
                             </div>
                         </div>
 
-                        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                        <h2 className="text-3xl font-extrabold items-center text-gray-900 tracking-tight text-center">
                             {title}
                         </h2>
                         {subtitle && (
-                            <p className="mt-2 text-base text-gray-600 font-medium">
+                            <p className="mt-2 text-base text-gray-600 font-medium text-center">
                                 {subtitle}
                             </p>
                         )}

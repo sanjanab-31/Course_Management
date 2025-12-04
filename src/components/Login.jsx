@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from './AuthLayout';
@@ -8,6 +8,18 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    
+    // Auto-dismiss error after 5 seconds or on any click within the page
+    useEffect(() => {
+        if (!error) return;
+        const timer = setTimeout(() => setError(''), 5000);
+        const handleAnyClick = () => setError('');
+        window.addEventListener('click', handleAnyClick, { once: true });
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('click', handleAnyClick);
+        };
+    }, [error]);
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -229,13 +241,6 @@ const Login = () => {
                     >
                         Create an account
                     </Link>
-                    <button
-                        type="button"
-                        onClick={handleSetupDemo}
-                        className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                    >
-                        Setup Demo Accounts
-                    </button>
                 </div>
             </div>
         </AuthLayout>
