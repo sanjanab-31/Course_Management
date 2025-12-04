@@ -7,13 +7,9 @@ import {
     enrollInCourse,
     subscribeToCoursesUpdates,
     subscribeToStudentEnrollments
-<<<<<<< HEAD:src/components/student/StudentCourses.jsx
 } from '../../services/courseService';
-=======
-} from '../services/courseService';
-import { checkCourseCompletion } from '../services/certificateService';
-import CertificateGenerator from './CertificateGenerator';
->>>>>>> f97bea7a923e955961975ab0d0a31d9933014364:src/components/MyCoursesPage.jsx
+import { checkCourseCompletion } from '../../services/certificateService';
+import CertificateGenerator from '../CertificateGenerator';
 import {
     BookOpen,
     Clock,
