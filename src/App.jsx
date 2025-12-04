@@ -13,6 +13,7 @@ import ProfilePage from './components/ProfilePage';
 import StudentCourses from './components/student/StudentCourses';
 import TeacherCourses from './components/teacher/TeacherCourses';
 import TeacherAssignments from './components/teacher/TeacherAssignments';
+import TeacherLiveClasses from './components/teacher/TeacherLiveClasses';
 import LiveClassesPage from './components/LiveClassesPage';
 import AssignmentsPage from './components/AssignmentsPage';
 import QuizzesTestsPage from './components/QuizzesTestsPage';
@@ -101,6 +102,11 @@ function App() {
           <Route path="/teacher/assignments" element={
             <RoleRoute role="teacher">
               <TeacherAssignments />
+            </RoleRoute>
+          } />
+          <Route path="/teacher/live-classes" element={
+            <RoleRoute role="teacher">
+              <TeacherLiveClasses />
             </RoleRoute>
           } />
           {/* Redirect legacy /my-courses if needed, or just remove it if sidebar is updated */}
