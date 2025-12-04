@@ -1,21 +1,11 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Lock, User, Mail } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
+import { Bell, Lock, User } from 'lucide-react';
 
 const SettingsPage = () => {
-    const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Poppins'] p-8">
-            <button
-                onClick={() => navigate('/')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back to Dashboard</span>
-            </button>
-
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
+        <DashboardLayout>
 
             <div className="max-w-2xl space-y-6">
                 {/* Account Settings */}
@@ -81,7 +71,7 @@ const SettingsPage = () => {
                     Save Changes
                 </button>
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 

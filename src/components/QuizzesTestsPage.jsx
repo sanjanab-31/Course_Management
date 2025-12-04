@@ -1,9 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Award, Clock, CheckCircle, XCircle } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
+import { Award, Clock, CheckCircle } from 'lucide-react';
 
 const QuizzesTestsPage = () => {
-    const navigate = useNavigate();
 
     const quizzes = [
         {
@@ -37,16 +36,7 @@ const QuizzesTestsPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Poppins'] p-8">
-            <button
-                onClick={() => navigate('/')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back to Dashboard</span>
-            </button>
-
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Quizzes & Tests</h1>
+        <DashboardLayout>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {quizzes.map((quiz) => (
@@ -104,17 +94,17 @@ const QuizzesTestsPage = () => {
                         </div>
 
                         <button className={`w-full px-4 py-2 rounded-lg font-semibold ${quiz.status === 'completed'
-                                ? 'bg-gray-100 text-gray-600'
-                                : quiz.status === 'available'
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'bg-gray-100 text-gray-600'
+                            : quiz.status === 'available'
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             }`}>
                             {quiz.status === 'completed' ? 'View Results' : quiz.status === 'available' ? 'Start Quiz' : 'Not Available'}
                         </button>
                     </div>
                 ))}
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 

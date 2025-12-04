@@ -1,10 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Users, ArrowLeft, Play, CheckCircle } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
+import { BookOpen, Clock, Users, Play } from 'lucide-react';
 
 const MyCoursesPage = () => {
-    const navigate = useNavigate();
-
     const courses = [
         {
             id: 1,
@@ -39,17 +37,7 @@ const MyCoursesPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Poppins'] p-8">
-            <button
-                onClick={() => navigate('/')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back to Dashboard</span>
-            </button>
-
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">My Courses</h1>
-
+        <DashboardLayout>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {courses.map((course) => (
                     <div key={course.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
@@ -91,8 +79,9 @@ const MyCoursesPage = () => {
                     </div>
                 ))}
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 
 export default MyCoursesPage;
+

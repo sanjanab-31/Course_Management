@@ -1,23 +1,14 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Calendar, MapPin, Edit, ArrowLeft } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
+import { Mail, Phone, Calendar, MapPin, Edit } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ProfilePage = () => {
-    const navigate = useNavigate();
     const { currentUser } = useAuth();
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Poppins']">
-            <div className="max-w-4xl mx-auto p-8">
-                <button
-                    onClick={() => navigate('/')}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    <span>Back to Dashboard</span>
-                </button>
-
+        <DashboardLayout>
+            <div className="max-w-4xl mx-auto">
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                     {/* Header */}
                     <div className="bg-blue-600 h-32"></div>
@@ -112,8 +103,9 @@ const ProfilePage = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 
 export default ProfilePage;
+

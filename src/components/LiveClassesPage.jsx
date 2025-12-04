@@ -1,10 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Video, Calendar, Users, Play } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
+import { Video, Calendar, Users, Play } from 'lucide-react';
 
 const LiveClassesPage = () => {
-    const navigate = useNavigate();
-
     const liveClasses = [
         {
             id: 1,
@@ -27,17 +25,7 @@ const LiveClassesPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Poppins'] p-8">
-            <button
-                onClick={() => navigate('/')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back to Dashboard</span>
-            </button>
-
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Live Classes</h1>
-
+        <DashboardLayout>
             <div className="space-y-4">
                 {liveClasses.map((classItem) => (
                     <div key={classItem.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
@@ -83,8 +71,9 @@ const LiveClassesPage = () => {
                     </div>
                 ))}
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 
 export default LiveClassesPage;
+

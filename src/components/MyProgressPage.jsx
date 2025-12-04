@@ -1,9 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, Award, BookOpen, Clock } from 'lucide-react';
+import DashboardLayout from './DashboardLayout';
+import { TrendingUp, Award, BookOpen, Clock } from 'lucide-react';
 
 const MyProgressPage = () => {
-    const navigate = useNavigate();
 
     const courseProgress = [
         { name: 'Data Structures', progress: 75, color: 'blue' },
@@ -20,16 +19,7 @@ const MyProgressPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-['Poppins'] p-8">
-            <button
-                onClick={() => navigate('/')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Back to Dashboard</span>
-            </button>
-
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">My Progress</h1>
+        <DashboardLayout>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-4 gap-6 mb-8">
@@ -67,7 +57,7 @@ const MyProgressPage = () => {
                     ))}
                 </div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 
