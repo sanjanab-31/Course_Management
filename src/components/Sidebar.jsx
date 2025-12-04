@@ -78,13 +78,8 @@ const Sidebar = () => {
             {/* Logo Section */}
             <div className="p-5 border-b border-gray-200">
                 <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-10 h-12 bg-white rounded-full flex items-center justify-center">
-                        <img src="https://res.cloudinary.com/dfflvhcbx/image/upload/v1764820736/download-removebg-preview_i5gn9t.png" alt="" /> 
-                    </div>
-                    <div>
-                        <h1 className="text-base font-bold text-gray-900">SRI ESHWAR</h1>
-                        <p className="text-xs text-gray-500">Learning</p>
-                        <p className="text-xs text-gray-500">Management System</p>
+                    <div className="w-50 h-10 bg-white rounded-full flex items-center justify-center">
+                        <img src="https://res.cloudinary.com/dfflvhcbx/image/upload/v1764841818/download-removebg-preview_1_agz3sp.png" alt="" /> 
                     </div>
                 </div>
                 <div className="mt-3 px-3 py-1.5 bg-gray-100 rounded-md text-center">
