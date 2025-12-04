@@ -1,91 +1,88 @@
-// Sample script to add courses to Firebase
+// Sample script to add courses to MongoDB via API
 // Run this once to populate the database with sample courses
 
-import { db } from './config/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { coursesApi } from '../services/api';
 
 const sampleCourses = [
     {
-        name: 'Data Structures & Algorithms',
+        title: 'Data Structures & Algorithms',
         code: 'CS301',
-        professor: 'Prof. Nishant Kumar',
+        instructor: 'Prof. Nishant Kumar',
+        instructorId: 'teacher@gmail.com', // Default teacher ID
+        category: 'Computer Science',
         duration: '12 weeks',
         totalLectures: 45,
         rating: 4.8,
-        color: 'blue',
         description: 'Learn fundamental data structures and algorithms',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        level: 'Intermediate'
     },
     {
-        name: 'Database Management Systems',
+        title: 'Database Management Systems',
         code: 'CS302',
-        professor: 'Dr. Deepak Sharma',
+        instructor: 'Dr. Deepak Sharma',
+        instructorId: 'teacher@gmail.com',
+        category: 'Computer Science',
         duration: '10 weeks',
         totalLectures: 40,
         rating: 4.6,
-        color: 'green',
         description: 'Master database design and SQL',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        level: 'Intermediate'
     },
     {
-        name: 'Operating Systems',
+        title: 'Operating Systems',
         code: 'CS303',
-        professor: 'Prof. Satyam Singh',
+        instructor: 'Prof. Satyam Singh',
+        instructorId: 'teacher@gmail.com',
+        category: 'Computer Science',
         duration: '8 weeks',
         totalLectures: 35,
         rating: 4.9,
-        color: 'purple',
         description: 'Understanding OS concepts and implementation',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        level: 'Advanced'
     },
     {
-        name: 'Machine Learning',
+        title: 'Machine Learning',
         code: 'CS401',
-        professor: 'Dr. Priya Sharma',
+        instructor: 'Dr. Priya Sharma',
+        instructorId: 'teacher@gmail.com',
+        category: 'Computer Science',
         duration: '14 weeks',
         totalLectures: 50,
         rating: 4.7,
-        color: 'blue',
         description: 'Introduction to machine learning algorithms',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        level: 'Advanced'
     },
     {
-        name: 'Web Development',
+        title: 'Web Development',
         code: 'CS304',
-        professor: 'Prof. Amit Kumar',
+        instructor: 'Prof. Amit Kumar',
+        instructorId: 'teacher@gmail.com',
+        category: 'Computer Science',
         duration: '12 weeks',
         totalLectures: 40,
         rating: 4.9,
-        color: 'green',
         description: 'Full-stack web development with modern frameworks',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        level: 'Beginner'
     },
     {
-        name: 'Artificial Intelligence',
+        title: 'Artificial Intelligence',
         code: 'CS402',
-        professor: 'Dr. Sarah Lee',
+        instructor: 'Dr. Sarah Lee',
+        instructorId: 'teacher@gmail.com',
+        category: 'Computer Science',
         duration: '16 weeks',
         totalLectures: 45,
         rating: 4.8,
-        color: 'purple',
         description: 'Explore AI concepts and applications',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        level: 'Advanced'
     }
 ];
 
 export const addSampleCourses = async () => {
     try {
-        const coursesRef = collection(db, 'courses');
-
         for (const course of sampleCourses) {
-            await addDoc(coursesRef, course);
-            console.log(`Added course: ${course.name}`);
+            await coursesApi.create(course);
+            console.log(`Added course: ${course.title}`);
         }
 
         console.log('All sample courses added successfully!');

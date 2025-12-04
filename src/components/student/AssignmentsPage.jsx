@@ -147,15 +147,7 @@ const AssignmentsPage = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <StudentLayout>
-                <div className="flex items-center justify-center h-screen">
-                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-                </div>
-            </StudentLayout>
-        );
-    }
+    // Loading state removed - always show content
 
     return (
         <StudentLayout>

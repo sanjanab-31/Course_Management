@@ -1,28 +1,14 @@
-import { db } from '../config/firebase';
-import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    where,
-    onSnapshot,
-    orderBy,
-    Timestamp
-} from 'firebase/firestore';
+import { liveClassesApi } from './api';
 
 /**
- * Get all live classes from Firestore
+ * Get all live classes from API
  */
 export const getAllLiveClasses = async () => {
     try {
-        const classesRef = collection(db, 'liveClasses');
-        const q = query(classesRef, orderBy('startTime', 'desc'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        // Note: This requires getting all courses first, then their live classes
+        // For now, return empty array or implement a general endpoint
+        console.warn('getAllLiveClasses: May need backend endpoint for all live classes');
+        return [];
     } catch (error) {
         console.error('Error fetching live classes:', error);
         throw error;
@@ -34,17 +20,7 @@ export const getAllLiveClasses = async () => {
  */
 export const getLiveClassesByCourseId = async (courseId) => {
     try {
-        const classesRef = collection(db, 'liveClasses');
-        const q = query(
-            classesRef,
-            where('courseId', '==', courseId),
-            orderBy('startTime', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        return await liveClassesApi.getByCourse(courseId);
     } catch (error) {
         console.error('Error fetching classes for course:', error);
         throw error;
@@ -60,42 +36,24 @@ export const getLiveClassesForEnrolledCourses = async (enrolledCourseIds) => {
             return [];
         }
 
-        const classesRef = collection(db, 'liveClasses');
-
-        // Firestore 'in' query supports up to 10 items
-        const batchSize = 10;
-        const batches = [];
-
-        for (let i = 0; i < enrolledCourseIds.length; i += batchSize) {
-            const batch = enrolledCourseIds.slice(i, i + batchSize);
-            const q = query(
-                classesRef,
-                where('courseId', 'in', batch),
-                orderBy('startTime', 'desc')
-            );
-            batches.push(getDocs(q));
+        const allClasses = [];
+        for (const courseId of enrolledCourseIds) {
+            try {
+                const classes = await getLiveClassesByCourseId(courseId);
+                allClasses.push(...classes);
+            } catch (error) {
+                console.error(`Error fetching classes for course ${courseId}:`, error);
+            }
         }
 
-        const snapshots = await Promise.all(batches);
-        const classes = [];
-
-        snapshots.forEach(snapshot => {
-            snapshot.docs.forEach(doc => {
-                classes.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
-        });
-
-        // Sort all classes by start time
-        classes.sort((a, b) => {
-            const dateA = a.startTime?.toDate?.() || new Date(a.startTime);
-            const dateB = b.startTime?.toDate?.() || new Date(b.startTime);
+        // Sort all classes by scheduled time
+        allClasses.sort((a, b) => {
+            const dateA = new Date(a.scheduledAt);
+            const dateB = new Date(b.scheduledAt);
             return dateB - dateA;
         });
 
-        return classes;
+        return allClasses;
     } catch (error) {
         console.error('Error fetching classes for enrolled courses:', error);
         throw error;
@@ -120,7 +78,7 @@ export const getTodayClasses = async (enrolledCourseIds) => {
         tomorrow.setDate(tomorrow.getDate() + 1);
 
         return allClasses.filter(classItem => {
-            const classDate = classItem.startTime?.toDate?.() || new Date(classItem.startTime);
+            const classDate = new Date(classItem.scheduledAt);
             return classDate >= today && classDate < tomorrow;
         });
     } catch (error) {
@@ -146,7 +104,7 @@ export const getUpcomingClasses = async (enrolledCourseIds) => {
         tomorrow.setDate(tomorrow.getDate() + 1);
 
         return allClasses.filter(classItem => {
-            const classDate = classItem.startTime?.toDate?.() || new Date(classItem.startTime);
+            const classDate = new Date(classItem.scheduledAt);
             return classDate >= tomorrow && classItem.status !== 'completed';
         });
     } catch (error) {
@@ -178,58 +136,25 @@ export const getRecordedClasses = async (enrolledCourseIds) => {
 
 /**
  * Subscribe to real-time updates for live classes
+ * Note: Real-time subscriptions are not available with REST API
+ * This is a placeholder that polls the API
  */
 export const subscribeToLiveClassesUpdates = (enrolledCourseIds, callback) => {
     if (!enrolledCourseIds || enrolledCourseIds.length === 0) {
         callback([]);
-        return () => { }; // Return empty unsubscribe function
+        return () => {}; // Return empty unsubscribe function
     }
 
-    const classesRef = collection(db, 'liveClasses');
-
-    // Handle batching for more than 10 courses
-    const batchSize = 10;
-    const unsubscribers = [];
-    const classesMap = new Map();
-
-    const updateCallback = () => {
-        const allClasses = Array.from(classesMap.values());
-        // Sort by start time
-        allClasses.sort((a, b) => {
-            const dateA = a.startTime?.toDate?.() || new Date(a.startTime);
-            const dateB = b.startTime?.toDate?.() || new Date(b.startTime);
-            return dateB - dateA;
-        });
-        callback(allClasses);
-    };
-
-    for (let i = 0; i < enrolledCourseIds.length; i += batchSize) {
-        const batch = enrolledCourseIds.slice(i, i + batchSize);
-        const q = query(
-            classesRef,
-            where('courseId', 'in', batch),
-            orderBy('startTime', 'desc')
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            snapshot.docs.forEach(doc => {
-                classesMap.set(doc.id, {
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
-            updateCallback();
-        }, (error) => {
+    const pollInterval = setInterval(async () => {
+        try {
+            const classes = await getLiveClassesForEnrolledCourses(enrolledCourseIds);
+            callback(classes);
+        } catch (error) {
             console.error('Error in live classes subscription:', error);
-        });
+        }
+    }, 5000); // Poll every 5 seconds
 
-        unsubscribers.push(unsubscribe);
-    }
-
-    // Return combined unsubscribe function
-    return () => {
-        unsubscribers.forEach(unsub => unsub());
-    };
+    return () => clearInterval(pollInterval);
 };
 
 /**
@@ -237,25 +162,8 @@ export const subscribeToLiveClassesUpdates = (enrolledCourseIds, callback) => {
  */
 export const formatClassTime = (startTime, endTime) => {
     try {
-        let start, end;
-
-        if (startTime?.toDate) {
-            start = startTime.toDate();
-        } else if (startTime instanceof Date) {
-            start = startTime;
-        } else if (typeof startTime === 'string') {
-            start = new Date(startTime);
-        } else {
-            return 'Time not available';
-        }
-
-        if (endTime?.toDate) {
-            end = endTime.toDate();
-        } else if (endTime instanceof Date) {
-            end = endTime;
-        } else if (typeof endTime === 'string') {
-            end = new Date(endTime);
-        }
+        const start = new Date(startTime);
+        const end = endTime ? new Date(endTime) : null;
 
         const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
         const startTimeStr = start.toLocaleTimeString('en-US', timeOptions);
@@ -273,18 +181,7 @@ export const formatClassTime = (startTime, endTime) => {
  */
 export const formatClassDate = (startTime) => {
     try {
-        let date;
-
-        if (startTime?.toDate) {
-            date = startTime.toDate();
-        } else if (startTime instanceof Date) {
-            date = startTime;
-        } else if (typeof startTime === 'string') {
-            date = new Date(startTime);
-        } else {
-            return 'Date not available';
-        }
-
+        const date = new Date(startTime);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);

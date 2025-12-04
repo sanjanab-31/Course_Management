@@ -2,12 +2,9 @@ import React, { useState, useEffect } from 'react';
 import StudentLayout from './StudentLayout';
 import { useAuth } from '../../context/AuthContext';
 import {
-    getAllCourses,
-    getAllStudentEnrollments,
-    enrollInCourse,
-    subscribeToCoursesUpdates,
-    subscribeToStudentEnrollments
-} from '../../services/courseService';
+    coursesApi,
+    enrollmentsApi
+} from '../../services/api';
 import { checkCourseCompletion } from '../../services/certificateService';
 import CertificateGenerator from './CertificateGenerator';
 import {
@@ -44,8 +41,8 @@ const MyCoursesPage = () => {
             try {
                 setLoading(false);
                 const [coursesData, enrollmentsData] = await Promise.all([
-                    getAllCourses(),
-                    getAllStudentEnrollments(currentUser.uid)
+                    coursesApi.getAll(),
+                    enrollmentsApi.getByUserId(currentUser.uid)
                 ]);
                 setAllCourses(coursesData);
                 setEnrollments(enrollmentsData);
@@ -59,22 +56,6 @@ const MyCoursesPage = () => {
 
         fetchData();
 
-        // Subscribe to real-time updates
-        const unsubscribeCourses = subscribeToCoursesUpdates((courses) => {
-            setAllCourses(courses);
-        });
-
-        const unsubscribeEnrollments = subscribeToStudentEnrollments(
-            currentUser.uid,
-            (enrollmentsData) => {
-                setEnrollments(enrollmentsData);
-            }
-        );
-
-        return () => {
-            unsubscribeCourses();
-            unsubscribeEnrollments();
-        };
     }, [currentUser]);
 
     // Check certificate eligibility for enrolled courses
@@ -108,7 +89,7 @@ const MyCoursesPage = () => {
 
         try {
             setEnrolling(courseId);
-            await enrollInCourse(courseId, currentUser.uid);
+            await enrollmentsApi.enroll(courseId, currentUser.uid);
             showNotification('Successfully enrolled in course!', 'success');
         } catch (error) {
             console.error('Error enrolling:', error);
@@ -152,8 +133,8 @@ const MyCoursesPage = () => {
     // Filter courses based on active tab
     const filteredCourses = coursesWithEnrollment.filter(course => {
         const matchesTab = course.status === activeTab;
-        const matchesSearch = course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            course.professor.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = (course.title || course.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (course.instructor || course.professor || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchesTab && matchesSearch;
     });
 
@@ -206,15 +187,8 @@ const MyCoursesPage = () => {
                 </div>
             )}
 
-            {/* Loading State */}
-            {loading ? (
-                <div className="flex items-center justify-center h-96">
-                    <div className="text-center">
-                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                        <p className="text-gray-600">Loading courses...</p>
-                    </div>
-                </div>
-            ) : (
+            {/* Loading State - Removed */}
+            {(
                 <div className="space-y-6">
                     {/* Header Section */}
                     <div>
@@ -315,10 +289,10 @@ const MyCoursesPage = () => {
                                     <div className="p-5">
                                         {/* Course Title */}
                                         <h3 className="text-lg font-bold text-gray-900 mb-1">
-                                            {course.name}
+                                            {course.title || course.name}
                                         </h3>
                                         <p className="text-sm text-gray-600 mb-4">
-                                            {course.professor}
+                                            {course.instructor || course.professor}
                                         </p>
 
                                         {/* Progress Section */}
@@ -396,7 +370,7 @@ const MyCoursesPage = () => {
                                                 // Show certificate button for completed courses with all requirements met
                                                 <CertificateGenerator
                                                     studentName={currentUser?.displayName || currentUser?.email || 'Student'}
-                                                    courseName={course.name}
+                                                    courseName={course.title || course.name}
                                                     grade={certificateData[course.id]?.grade || 'N/A'}
                                                     completionDate={new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                                                     onDownload={() => showNotification('Certificate downloaded successfully!', 'success')}
@@ -460,10 +434,9 @@ const MyCoursesPage = () => {
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto text-left">
                                     <p className="text-sm text-blue-900 font-medium mb-2">💡 To add sample courses:</p>
                                     <ol className="text-sm text-blue-800 space-y-1 ml-4 list-decimal">
-                                        <li>Open Firebase Console → Firestore Database</li>
-                                        <li>Create a collection named "courses"</li>
-                                        <li>Add documents with fields: name, code, professor, duration, totalLectures, rating, color</li>
-                                        <li>Or use the sample data script in <code className="bg-blue-100 px-1 rounded">src/utils/addSampleCourses.js</code></li>
+                                        <li>Make sure MongoDB is running and backend server is started</li>
+                                        <li>Use the sample data script in <code className="bg-blue-100 px-1 rounded">src/utils/addSampleCourses.js</code></li>
+                                        <li>Or create courses through the Teacher portal</li>
                                     </ol>
                                 </div>
                             )}

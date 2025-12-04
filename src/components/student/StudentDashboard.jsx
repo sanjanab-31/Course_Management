@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StudentLayout from './StudentLayout';
+import { useAuth } from '../../context/AuthContext';
+import { enrollmentsApi } from '../../services/api';
 import {
     BookOpen,
     Clock,
@@ -8,26 +10,79 @@ import {
     Calendar,
     Play,
     FileText,
-    Video
+    Video,
+    Loader2
 } from 'lucide-react';
 
 const StudentDashboard = () => {
-    // Sample data - replace with real data from Firebase
+    const { currentUser } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [stats, setStats] = useState({
+        enrolledCourses: 0,
+        hoursStudied: 0,
+        assignmentsDue: 0,
+        overallProgress: 0
+    });
+    const [recentActivity, setRecentActivity] = useState([]);
+
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const fetchData = async () => {
+            try {
+                setLoading(false);
+                const enrollments = await enrollmentsApi.getByUserId(currentUser.uid);
+
+                // Calculate stats
+                const enrolledCourses = enrollments.length;
+                const overallProgress = enrollments.length > 0
+                    ? Math.round(enrollments.reduce((acc, curr) => acc + (curr.enrollmentData.progress || 0), 0) / enrollments.length)
+                    : 0;
+
+                // Mock data for hours and assignments (until we have real tracking)
+                const hoursStudied = enrollments.reduce((acc, curr) => acc + (curr.enrollmentData.completedLectures || 0) * 1.5, 0);
+                const assignmentsDue = enrollments.reduce((acc, curr) => acc + (curr.courseData.assignments || 0) - (curr.enrollmentData.assignments || 0), 0);
+
+                setStats({
+                    enrolledCourses,
+                    hoursStudied: Math.round(hoursStudied),
+                    assignmentsDue: Math.max(0, assignmentsDue),
+                    overallProgress
+                });
+
+                // Generate recent activity from enrollments
+                const activity = enrollments.slice(0, 4).map(enrollment => ({
+                    type: 'course',
+                    title: `Enrolled in ${enrollment.courseData.title}`,
+                    course: enrollment.courseData.category,
+                    time: new Date(enrollment.enrollmentData.enrolledAt?.seconds * 1000).toLocaleDateString(),
+                    icon: BookOpen
+                }));
+                setRecentActivity(activity);
+
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [currentUser]);
+
     const studentData = {
-        name: 'Satyam Singh',
-        role: 'B.Tech Student',
-        semester: 'Semester 5',
-        department: 'CSE',
-        enrolledCourses: 8,
-        enrolledCoursesChange: '+2 this month',
-        hoursStudied: 42,
-        hoursStudiedChange: '+8h this week',
-        assignmentsDue: 3,
-        assignmentsDueChange: '2 due today',
-        overallProgress: 87,
-        overallProgressChange: '+5% this month',
+        name: currentUser?.displayName || 'Student',
+        role: 'Student',
+        semester: 'Current Semester',
+        department: 'General',
+        ...stats,
+        enrolledCoursesChange: 'Active now',
+        hoursStudiedChange: 'Total hours',
+        assignmentsDueChange: 'Pending tasks',
+        overallProgressChange: 'Average progress'
     };
 
+    // Mock schedule for now
     const todaySchedule = [
         {
             title: 'Data Structures',
@@ -42,49 +97,10 @@ const StudentDashboard = () => {
             professor: 'Dr. Deepak Sharma',
             type: 'Practical',
             status: 'upcoming'
-        },
-        {
-            title: 'OS Theory',
-            time: '4:00 PM',
-            professor: 'Prof. Rajesh Kumar',
-            type: 'Recorded',
-            status: 'recorded'
         }
     ];
 
-    const recentActivity = [
-        {
-            type: 'quiz',
-            title: 'Completed quiz',
-            course: 'Data Structures',
-            score: '95/100',
-            time: '2 hours ago',
-            icon: Trophy
-        },
-        {
-            type: 'assignment',
-            title: 'Submitted assignment',
-            course: 'DBMS',
-            status: 'Pending Review',
-            time: '4 hours ago',
-            icon: FileText
-        },
-        {
-            type: 'lecture',
-            title: 'Watched lecture',
-            course: 'Operating Systems',
-            duration: '45 min',
-            time: '1 day ago',
-            icon: Play
-        },
-        {
-            type: 'class',
-            title: 'Joined live class',
-            course: 'Data Structures',
-            time: '2 days ago',
-            icon: Video
-        }
-    ];
+    // Loading state removed - always show content
 
     return (
         <StudentLayout>
@@ -94,7 +110,7 @@ const StudentDashboard = () => {
                     <div>
                         <h3 className="text-2xl font-semibold mb-2">Welcome back, {studentData.name}!</h3>
                         <p className="text-blue-100">
-                            You have {studentData.assignmentsDue} classes today and {studentData.assignmentsDue} assignments due this week.
+                            You have {studentData.enrolledCourses} active courses and {studentData.assignmentsDue} pending assignments.
                         </p>
                     </div>
                     <div className="text-right">
@@ -105,7 +121,7 @@ const StudentDashboard = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-4 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 {/* Enrolled Courses */}
                 <div className="bg-white rounded-lg p-5 border border-gray-200">
                     <div className="flex items-center justify-between mb-3">
@@ -156,7 +172,7 @@ const StudentDashboard = () => {
             </div>
 
             {/* Today's Schedule and Recent Activity */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Today's Schedule */}
                 <div className="bg-white rounded-lg border border-gray-200">
                     <div className="px-5 py-4 border-b border-gray-200 flex items-center">
@@ -174,9 +190,6 @@ const StudentDashboard = () => {
                                         )}
                                         {item.status === 'upcoming' && (
                                             <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-md font-medium">Practical</span>
-                                        )}
-                                        {item.status === 'recorded' && (
-                                            <span className="px-2 py-0.5 bg-gray-600 text-white text-xs rounded-md font-medium">Recorded</span>
                                         )}
                                     </div>
                                     <p className="text-sm text-gray-600 mb-1">{item.time} • {item.professor}</p>
@@ -198,29 +211,25 @@ const StudentDashboard = () => {
                         <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
                     </div>
                     <div className="p-5 space-y-4">
-                        {recentActivity.map((activity, index) => {
-                            const Icon = activity.icon;
-                            return (
-                                <div key={index} className="flex items-start space-x-3 pb-4 border-b border-gray-100 last:border-0">
-                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${activity.type === 'quiz' ? 'bg-yellow-100' :
-                                        activity.type === 'assignment' ? 'bg-blue-100' :
-                                            activity.type === 'lecture' ? 'bg-green-100' :
-                                                'bg-purple-100'
-                                        }`}>
-                                        <Icon className={`w-4 h-4 ${activity.type === 'quiz' ? 'text-yellow-600' :
-                                            activity.type === 'assignment' ? 'text-blue-600' :
-                                                activity.type === 'lecture' ? 'text-green-600' :
-                                                    'text-purple-600'
-                                            }`} />
+                        {recentActivity.length > 0 ? (
+                            recentActivity.map((activity, index) => {
+                                const Icon = activity.icon;
+                                return (
+                                    <div key={index} className="flex items-start space-x-3 pb-4 border-b border-gray-100 last:border-0">
+                                        <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-100">
+                                            <Icon className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-medium text-gray-900">{activity.title}</h4>
+                                            <p className="text-sm text-gray-600">{activity.course}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-medium text-gray-900">{activity.title}</h4>
-                                        <p className="text-sm text-gray-600">{activity.course} • {activity.score || activity.status || activity.duration}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })
+                        ) : (
+                            <p className="text-gray-500 text-center py-4">No recent activity</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -229,4 +238,3 @@ const StudentDashboard = () => {
 };
 
 export default StudentDashboard;
-

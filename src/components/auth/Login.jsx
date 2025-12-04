@@ -37,7 +37,7 @@ const Login = () => {
 
         try {
             setError('');
-            setLoading(true);
+            setLoading(false);
             const cred = await login(email, password);
             const emailAddr = cred?.user?.email || '';
             const inferredRole = emailAddr.includes('teacher')
@@ -79,7 +79,7 @@ const Login = () => {
             { email: 'admin@gmail.com', password: 'Admin123', name: 'Demo Admin', role: 'admin' }
         ];
 
-        setLoading(true);
+        setLoading(false);
         try {
             for (const user of demoUsers) {
                 try {

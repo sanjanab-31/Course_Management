@@ -140,15 +140,8 @@ const LiveClassesPage = () => {
                     <h1 className="text-2xl font-bold text-gray-900">Join live sessions and access recorded lectures</h1>
                 </div>
 
-                {/* Loading State */}
-                {loading ? (
-                    <div className="flex items-center justify-center h-96">
-                        <div className="text-center">
-                            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                            <p className="text-gray-600">Loading live classes...</p>
-                        </div>
-                    </div>
-                ) : error ? (
+                {/* Loading State - Removed */}
+                {error ? (
                     /* Error State */
                     <div className="flex items-center justify-center h-96">
                         <div className="text-center">

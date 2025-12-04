@@ -35,7 +35,7 @@ const Signup = () => {
 
         try {
             setError('');
-            setLoading(true);
+            setLoading(false);
             await signup(email, password, name, role);
             navigate('/');
         } catch (err) {

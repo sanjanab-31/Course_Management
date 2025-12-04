@@ -1,30 +1,11 @@
-import { db } from '../config/firebase';
-import {
-    collection,
-    doc,
-    getDocs,
-    setDoc,
-    updateDoc,
-    onSnapshot,
-    query,
-    where,
-    orderBy,
-    serverTimestamp,
-    addDoc
-} from 'firebase/firestore';
+import { quizzesApi } from './api';
 
 /**
  * Get all quizzes for a specific course
  */
 export const getQuizzesForCourse = async (courseId) => {
     try {
-        const quizzesRef = collection(db, 'courses', courseId, 'quizzes');
-        const snapshot = await getDocs(quizzesRef);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            courseId,
-            ...doc.data()
-        }));
+        return await quizzesApi.getByCourse(courseId);
     } catch (error) {
         console.error(`Error fetching quizzes for course ${courseId}:`, error);
         throw error;
@@ -33,20 +14,20 @@ export const getQuizzesForCourse = async (courseId) => {
 
 /**
  * Subscribe to quizzes for a specific course
+ * Note: Real-time subscriptions are not available with REST API
+ * This is a placeholder that polls the API
  */
 export const subscribeToCourseQuizzes = (courseId, callback) => {
-    const quizzesRef = collection(db, 'courses', courseId, 'quizzes');
+    const pollInterval = setInterval(async () => {
+        try {
+            const quizzes = await getQuizzesForCourse(courseId);
+            callback(quizzes);
+        } catch (error) {
+            console.error(`Error subscribing to quizzes for course ${courseId}:`, error);
+        }
+    }, 5000); // Poll every 5 seconds
 
-    return onSnapshot(quizzesRef, (snapshot) => {
-        const quizzes = snapshot.docs.map(doc => ({
-            id: doc.id,
-            courseId,
-            ...doc.data()
-        }));
-        callback(quizzes);
-    }, (error) => {
-        console.error(`Error subscribing to quizzes for course ${courseId}:`, error);
-    });
+    return () => clearInterval(pollInterval);
 };
 
 /**
@@ -54,21 +35,10 @@ export const subscribeToCourseQuizzes = (courseId, callback) => {
  */
 export const submitQuizAttempt = async (courseId, quizId, userId, attemptData) => {
     try {
-        // 1. Save the attempt in the quiz's attempts subcollection
-        const attemptRef = collection(db, 'courses', courseId, 'quizzes', quizId, 'attempts');
-        await addDoc(attemptRef, {
+        return await quizzesApi.submitAttempt(courseId, quizId, {
             userId,
-            ...attemptData,
-            submittedAt: serverTimestamp()
+            ...attemptData
         });
-
-        // 2. Update the student's enrollment data to reflect the completed quiz
-        // This is optional depending on how we want to track progress, but good for redundancy
-        const enrollmentRef = doc(db, 'courses', courseId, 'enrollments', userId);
-        // We might want to update a 'completedQuizzes' array or count in the enrollment
-        // For now, we'll just log it or leave it to a cloud function
-
-        return true;
     } catch (error) {
         console.error('Error submitting quiz attempt:', error);
         throw error;
@@ -80,14 +50,10 @@ export const submitQuizAttempt = async (courseId, quizId, userId, attemptData) =
  */
 export const getStudentQuizAttempts = async (courseId, quizId, userId) => {
     try {
-        const attemptsRef = collection(db, 'courses', courseId, 'quizzes', quizId, 'attempts');
-        const q = query(attemptsRef, where('userId', '==', userId), orderBy('submittedAt', 'desc'));
-        const snapshot = await getDocs(q);
-
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        // Note: This endpoint may need to be added to the backend API
+        console.warn('getStudentQuizAttempts: Backend endpoint may need to be implemented');
+        // TODO: Add endpoint to backend if needed
+        return [];
     } catch (error) {
         console.error('Error fetching quiz attempts:', error);
         throw error;
@@ -96,18 +62,18 @@ export const getStudentQuizAttempts = async (courseId, quizId, userId) => {
 
 /**
  * Subscribe to student's attempts for a specific quiz
+ * Note: Real-time subscriptions are not available with REST API
+ * This is a placeholder that polls the API
  */
 export const subscribeToQuizAttempts = (courseId, quizId, userId, callback) => {
-    const attemptsRef = collection(db, 'courses', courseId, 'quizzes', quizId, 'attempts');
-    const q = query(attemptsRef, where('userId', '==', userId), orderBy('submittedAt', 'desc'));
+    const pollInterval = setInterval(async () => {
+        try {
+            const attempts = await getStudentQuizAttempts(courseId, quizId, userId);
+            callback(attempts);
+        } catch (error) {
+            console.error('Error subscribing to quiz attempts:', error);
+        }
+    }, 5000); // Poll every 5 seconds
 
-    return onSnapshot(q, (snapshot) => {
-        const attempts = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        callback(attempts);
-    }, (error) => {
-        console.error('Error subscribing to quiz attempts:', error);
-    });
+    return () => clearInterval(pollInterval);
 };
