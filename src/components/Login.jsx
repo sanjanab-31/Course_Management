@@ -38,8 +38,29 @@ const Login = () => {
         try {
             setError('');
             setLoading(true);
-            await login(email, password);
-            navigate('/'); // Redirect to dashboard/home after login
+            const cred = await login(email, password);
+            const emailAddr = cred?.user?.email || '';
+            const inferredRole = emailAddr.includes('admin')
+                ? 'admin'
+                : emailAddr.includes('teacher')
+                    ? 'teacher'
+                    : 'student';
+
+            if (inferredRole !== activeTab) {
+                // Wrong portal selected for the user's role
+                setError(`Please use the ${inferredRole} portal to login.`);
+                // Sign out to prevent staying logged in under wrong tab
+                try {
+                    const { signOut } = await import('firebase/auth');
+                    const { auth } = await import('../config/firebase');
+                    await signOut(auth);
+                } catch {}
+                return;
+            }
+
+            // Redirect by role to dedicated portals
+            const redirectPath = inferredRole === 'student' ? '/student' : inferredRole === 'teacher' ? '/teacher' : '/admin';
+            navigate(redirectPath, { replace: true });
         } catch (err) {
             console.error(err);
             setError('Failed to log in: ' + err.message);

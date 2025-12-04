@@ -5,6 +5,8 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import ForgotPassword from './components/ForgotPassword';
 import StudentDashboard from './components/StudentDashboard';
+import TeacherDashboard from './components/TeacherDashboard';
+import AdminDashboard from './components/AdminDashboard';
 import ProfilePage from './components/ProfilePage';
 import MyCoursesPage from './components/MyCoursesPage';
 import LiveClassesPage from './components/LiveClassesPage';
@@ -20,26 +22,53 @@ function ProtectedRoute({ children }) {
   return currentUser ? children : <Navigate to="/login" replace />;
 }
 
+function RoleRoute({ role, children }) {
+  const { currentUser, userRole } = useAuth();
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (userRole !== role) {
+    const redirect = userRole === 'teacher' ? '/teacher' : userRole === 'admin' ? '/admin' : '/student';
+    return <Navigate to={redirect} replace />;
+  }
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { currentUser, userRole } = useAuth();
+  if (currentUser) {
+    const redirect = userRole === 'teacher' ? '/teacher' : userRole === 'admin' ? '/admin' : '/student';
+    return <Navigate to={redirect} replace />;
+  }
+  return children;
+}
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Student Dashboard Routes */}
-          <Route path="/" element={
-            <ProtectedRoute>
+          <Route path="/student" element={
+            <RoleRoute role="student">
               <StudentDashboard />
-            </ProtectedRoute>
+            </RoleRoute>
           } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <StudentDashboard />
-            </ProtectedRoute>
+          <Route path="/teacher" element={
+            <RoleRoute role="teacher">
+              <TeacherDashboard />
+            </RoleRoute>
           } />
+          <Route path="/admin" element={
+            <RoleRoute role="admin">
+              <AdminDashboard />
+            </RoleRoute>
+          } />
+          {/* Keep existing student feature routes under /student */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/student" replace />} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <ProfilePage />
