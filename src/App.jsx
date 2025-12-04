@@ -12,6 +12,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import ProfilePage from './components/ProfilePage';
 import StudentCourses from './components/student/StudentCourses';
 import TeacherCourses from './components/teacher/TeacherCourses';
+import TeacherAssignments from './components/teacher/TeacherAssignments';
 import LiveClassesPage from './components/LiveClassesPage';
 import AssignmentsPage from './components/AssignmentsPage';
 import QuizzesTestsPage from './components/QuizzesTestsPage';
@@ -95,6 +96,11 @@ function App() {
           <Route path="/teacher/courses" element={
             <RoleRoute role="teacher">
               <TeacherCourses />
+            </RoleRoute>
+          } />
+          <Route path="/teacher/assignments" element={
+            <RoleRoute role="teacher">
+              <TeacherAssignments />
             </RoleRoute>
           } />
           {/* Redirect legacy /my-courses if needed, or just remove it if sidebar is updated */}
