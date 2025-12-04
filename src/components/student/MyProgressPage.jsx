@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import StudentLayout from './StudentLayout';
 import { TrendingUp, Award, BookOpen, Clock, Loader2, Target, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getAllStudentEnrollments } from '../../services/courseService';
@@ -176,16 +176,16 @@ const MyProgressPage = () => {
 
     if (loading) {
         return (
-            <DashboardLayout>
+            <StudentLayout>
                 <div className="flex items-center justify-center h-screen">
                     <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
                 </div>
-            </DashboardLayout>
+            </StudentLayout>
         );
     }
 
     return (
-        <DashboardLayout>
+        <StudentLayout>
             <div className="space-y-8">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Track your academic performance</h1>
@@ -285,7 +285,7 @@ const MyProgressPage = () => {
                     )}
                 </div>
             </div>
-        </DashboardLayout>
+        </StudentLayout>
     );
 };
 

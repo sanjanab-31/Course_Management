@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import TeacherLayout from './TeacherLayout';
 import {
     BookOpen,
     Users,
@@ -51,7 +51,7 @@ const TeacherDashboard = () => {
     const completionData = [75, 82, 85, 88]; // Jan, Feb, Mar, Apr
 
     return (
-        <DashboardLayout>
+        <TeacherLayout>
             {/* Welcome Banner */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-6 mb-6 shadow-lg">
                 <div className="flex justify-between items-start">
@@ -245,7 +245,7 @@ const TeacherDashboard = () => {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </TeacherLayout>
     );
 };
 

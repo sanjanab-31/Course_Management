@@ -9,7 +9,10 @@ import TeacherDashboard from './components/teacher/TeacherDashboard';
 import StudentsPage from './components/teacher/StudentsPage';
 import GradebookPage from './components/teacher/GradebookPage';
 
-import ProfilePage from './components/common/ProfilePage';
+import StudentProfile from './components/student/StudentProfile';
+import TeacherProfile from './components/teacher/TeacherProfile';
+import StudentSettings from './components/student/StudentSettings';
+import TeacherSettings from './components/teacher/TeacherSettings';
 import StudentCourses from './components/student/StudentCourses';
 import TeacherCourses from './components/teacher/TeacherCourses';
 import TeacherAssignments from './components/teacher/TeacherAssignments';
@@ -19,7 +22,6 @@ import AssignmentsPage from './components/student/AssignmentsPage';
 import QuizzesTestsPage from './components/student/QuizzesTestsPage';
 import StudyMaterialsPage from './components/student/StudyMaterialsPage';
 import MyProgressPage from './components/student/MyProgressPage';
-import SettingsPage from './components/common/SettingsPage';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -80,16 +82,60 @@ function App() {
           {/* Keep existing student feature routes under /student */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/dashboard" element={<Navigate to="/student" replace />} />
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
+          <Route path="/student/profile" element={
+            <RoleRoute role="student">
+              <StudentProfile />
+            </RoleRoute>
           } />
+          <Route path="/teacher/profile" element={
+            <RoleRoute role="teacher">
+              <TeacherProfile />
+            </RoleRoute>
+          } />
+          <Route path="/student/settings" element={
+            <RoleRoute role="student">
+              <StudentSettings />
+            </RoleRoute>
+          } />
+          <Route path="/teacher/settings" element={
+            <RoleRoute role="teacher">
+              <TeacherSettings />
+            </RoleRoute>
+          } />
+
+          {/* Student Course Routes */}
           <Route path="/student/courses" element={
             <RoleRoute role="student">
               <StudentCourses />
             </RoleRoute>
           } />
+          <Route path="/live-classes" element={
+            <RoleRoute role="student">
+              <LiveClassesPage />
+            </RoleRoute>
+          } />
+          <Route path="/assignments" element={
+            <RoleRoute role="student">
+              <AssignmentsPage />
+            </RoleRoute>
+          } />
+          <Route path="/quizzes-tests" element={
+            <RoleRoute role="student">
+              <QuizzesTestsPage />
+            </RoleRoute>
+          } />
+          <Route path="/study-materials" element={
+            <RoleRoute role="student">
+              <StudyMaterialsPage />
+            </RoleRoute>
+          } />
+          <Route path="/my-progress" element={
+            <RoleRoute role="student">
+              <MyProgressPage />
+            </RoleRoute>
+          } />
+
+          {/* Teacher Routes */}
           <Route path="/teacher/courses" element={
             <RoleRoute role="teacher">
               <TeacherCourses />
@@ -104,38 +150,6 @@ function App() {
             <RoleRoute role="teacher">
               <TeacherLiveClasses />
             </RoleRoute>
-          } />
-          {/* Redirect legacy /my-courses if needed, or just remove it if sidebar is updated */}
-          <Route path="/my-courses" element={<Navigate to="/student/courses" replace />} />
-          <Route path="/live-classes" element={
-            <ProtectedRoute>
-              <LiveClassesPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/assignments" element={
-            <ProtectedRoute>
-              <AssignmentsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/quizzes-tests" element={
-            <ProtectedRoute>
-              <QuizzesTestsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/study-materials" element={
-            <ProtectedRoute>
-              <StudyMaterialsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/my-progress" element={
-            <ProtectedRoute>
-              <MyProgressPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
           } />
         </Routes>
       </AuthProvider>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import TeacherLayout from './TeacherLayout';
 import { Search, Plus, Mail, Phone, MoreHorizontal } from 'lucide-react';
 
 const StudentsPage = () => {
@@ -58,7 +58,7 @@ const StudentsPage = () => {
     };
 
     return (
-        <DashboardLayout>
+        <TeacherLayout>
             <div className="mb-8 flex justify-between items-end">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Students</h1>
@@ -168,7 +168,7 @@ const StudentsPage = () => {
                     </table>
                 </div>
             </div>
-        </DashboardLayout>
+        </TeacherLayout>
     );
 };
 

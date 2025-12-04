@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import StudentLayout from './StudentLayout';
 import { Calendar, Clock, Download, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getAllStudentEnrollments } from '../../services/courseService';
@@ -149,16 +149,16 @@ const AssignmentsPage = () => {
 
     if (loading) {
         return (
-            <DashboardLayout>
+            <StudentLayout>
                 <div className="flex items-center justify-center h-screen">
                     <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
                 </div>
-            </DashboardLayout>
+            </StudentLayout>
         );
     }
 
     return (
-        <DashboardLayout>
+        <StudentLayout>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between">
@@ -322,7 +322,7 @@ const AssignmentsPage = () => {
                     </div>
                 )}
             </div>
-        </DashboardLayout>
+        </StudentLayout>
     );
 };
 

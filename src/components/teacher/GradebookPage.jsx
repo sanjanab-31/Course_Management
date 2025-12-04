@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import TeacherLayout from './TeacherLayout';
 import { Download, ChevronDown, TrendingUp, Award, Users, FileText } from 'lucide-react';
 
 const GradebookPage = () => {
@@ -91,7 +91,7 @@ const GradebookPage = () => {
     };
 
     return (
-        <DashboardLayout>
+        <TeacherLayout>
             <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Gradebook</h1>
@@ -233,7 +233,7 @@ const GradebookPage = () => {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </TeacherLayout>
     );
 };
 

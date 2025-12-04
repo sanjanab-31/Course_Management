@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import StudentLayout from './StudentLayout';
 import {
     BookOpen,
     Clock,
@@ -87,7 +87,7 @@ const StudentDashboard = () => {
     ];
 
     return (
-        <DashboardLayout>
+        <StudentLayout>
             {/* Welcome Banner */}
             <div className="bg-[#0277bd] text-white rounded-lg p-6 mb-6">
                 <div className="flex justify-between items-start">
@@ -224,7 +224,7 @@ const StudentDashboard = () => {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </StudentLayout>
     );
 };
 

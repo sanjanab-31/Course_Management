@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import TeacherLayout from './TeacherLayout';
 import { Plus, FileText, Clock, Users, Calendar, Edit, Eye } from 'lucide-react';
 
 const TeacherAssignments = () => {
@@ -68,7 +68,7 @@ const TeacherAssignments = () => {
     };
 
     return (
-        <DashboardLayout>
+        <TeacherLayout>
             <div className="mb-8 flex justify-between items-end">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
@@ -172,7 +172,7 @@ const TeacherAssignments = () => {
                     </div>
                 ))}
             </div>
-        </DashboardLayout>
+        </TeacherLayout>
     );
 };
 

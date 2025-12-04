@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import StudentLayout from './StudentLayout';
 import { Clock, Trophy, Circle, Target, Play, CheckCircle, TrendingUp, Award, Users, Loader2 } from 'lucide-react';
 import QuizTakingModal from './QuizTakingModal';
 import { useAuth } from '../../context/AuthContext';
@@ -156,16 +156,16 @@ const QuizzesTestsPage = () => {
 
     if (loading) {
         return (
-            <DashboardLayout>
+            <StudentLayout>
                 <div className="flex items-center justify-center h-screen">
                     <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
                 </div>
-            </DashboardLayout>
+            </StudentLayout>
         );
     }
 
     return (
-        <DashboardLayout>
+        <StudentLayout>
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
                 <div>
@@ -416,7 +416,7 @@ const QuizzesTestsPage = () => {
                     onComplete={handleQuizComplete}
                 />
             )}
-        </DashboardLayout>
+        </StudentLayout>
     );
 };
 

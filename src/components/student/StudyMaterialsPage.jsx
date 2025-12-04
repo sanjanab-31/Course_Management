@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import StudentLayout from './StudentLayout';
 import { useAuth } from '../../context/AuthContext';
 import { getAllStudentEnrollments, subscribeToStudentEnrollments } from '../../services/courseService';
 import {
@@ -103,7 +103,7 @@ const StudyMaterialsPage = () => {
     };
 
     return (
-        <DashboardLayout>
+        <StudentLayout>
             <div className="space-y-6">
                 {/* Header */}
                 <div>
@@ -201,7 +201,7 @@ const StudyMaterialsPage = () => {
                     </div>
                 )}
             </div>
-        </DashboardLayout>
+        </StudentLayout>
     );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../common/DashboardLayout';
+import StudentLayout from './StudentLayout';
 import { useAuth } from '../../context/AuthContext';
 import {
     getAllCourses,
@@ -196,7 +196,7 @@ const MyCoursesPage = () => {
     };
 
     return (
-        <DashboardLayout>
+        <StudentLayout>
             {/* Notification */}
             {notification && (
                 <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 ${notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
@@ -471,7 +471,7 @@ const MyCoursesPage = () => {
                     )}
                 </div>
             )}
-        </DashboardLayout>
+        </StudentLayout>
     );
 };
 
