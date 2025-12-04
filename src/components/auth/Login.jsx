@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import AuthLayout from './AuthLayout';
 import { Mail, Lock, AlertCircle, User, BookOpen, Shield } from 'lucide-react';
 
@@ -50,7 +50,7 @@ const Login = () => {
                 // Sign out to prevent staying logged in under wrong tab
                 try {
                     const { signOut } = await import('firebase/auth');
-                    const { auth } = await import('../config/firebase');
+                    const { auth } = await import('../../config/firebase');
                     await signOut(auth);
                 } catch { }
                 return;
@@ -104,7 +104,7 @@ const Login = () => {
                 }
                 // Force logout to clear session for next creation
                 const { signOut } = await import('firebase/auth');
-                const { auth } = await import('../config/firebase');
+                const { auth } = await import('../../config/firebase');
                 await signOut(auth);
             }
             setError('');

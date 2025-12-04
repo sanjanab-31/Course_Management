@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import {
     BookOpen,
     Clock,

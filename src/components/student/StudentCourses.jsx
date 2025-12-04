@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
 import {
     getAllCourses,
@@ -9,7 +9,7 @@ import {
     subscribeToStudentEnrollments
 } from '../../services/courseService';
 import { checkCourseCompletion } from '../../services/certificateService';
-import CertificateGenerator from '../CertificateGenerator';
+import CertificateGenerator from './CertificateGenerator';
 import {
     BookOpen,
     Clock,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import DashboardLayout from '../DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { Download, ChevronDown, TrendingUp, Award, Users, FileText } from 'lucide-react';
 
 const GradebookPage = () => {

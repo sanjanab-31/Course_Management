@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
-import { useAuth } from '../context/AuthContext';
-import { getAllStudentEnrollments, subscribeToStudentEnrollments } from '../services/courseService';
+import DashboardLayout from '../common/DashboardLayout';
+import { useAuth } from '../../context/AuthContext';
+import { getAllStudentEnrollments, subscribeToStudentEnrollments } from '../../services/courseService';
 import {
     getTodayClasses,
     getUpcomingClasses,
@@ -9,7 +9,7 @@ import {
     subscribeToLiveClassesUpdates,
     formatClassTime,
     formatClassDate
-} from '../services/liveClassService';
+} from '../../services/liveClassService';
 import { User, Clock, Users, Video, Loader2, BookOpen, AlertCircle } from 'lucide-react';
 
 const LiveClassesPage = () => {

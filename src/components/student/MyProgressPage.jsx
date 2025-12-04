@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { TrendingUp, Award, BookOpen, Clock, Loader2, Target, CheckCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { getAllStudentEnrollments } from '../services/courseService';
-import { subscribeToCourseQuizzes, subscribeToQuizAttempts } from '../services/quizService';
-import { subscribeToCourseAssignments, subscribeToAssignmentSubmissions } from '../services/assignmentService';
+import { useAuth } from '../../context/AuthContext';
+import { getAllStudentEnrollments } from '../../services/courseService';
+import { subscribeToCourseQuizzes, subscribeToQuizAttempts } from '../../services/quizService';
+import { subscribeToCourseAssignments, subscribeToAssignmentSubmissions } from '../../services/assignmentService';
 
 const MyProgressPage = () => {
     const { currentUser } = useAuth();

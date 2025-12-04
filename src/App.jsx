@@ -1,25 +1,25 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import ForgotPassword from './components/ForgotPassword';
+import Login from './components/auth/Login';
+import Signup from './components/auth/Signup';
+import ForgotPassword from './components/auth/ForgotPassword';
 import StudentDashboard from './components/student/StudentDashboard';
 import TeacherDashboard from './components/teacher/TeacherDashboard';
 import StudentsPage from './components/teacher/StudentsPage';
 import GradebookPage from './components/teacher/GradebookPage';
 
-import ProfilePage from './components/ProfilePage';
+import ProfilePage from './components/common/ProfilePage';
 import StudentCourses from './components/student/StudentCourses';
 import TeacherCourses from './components/teacher/TeacherCourses';
 import TeacherAssignments from './components/teacher/TeacherAssignments';
 import TeacherLiveClasses from './components/teacher/TeacherLiveClasses';
-import LiveClassesPage from './components/LiveClassesPage';
-import AssignmentsPage from './components/AssignmentsPage';
-import QuizzesTestsPage from './components/QuizzesTestsPage';
-import StudyMaterialsPage from './components/StudyMaterialsPage';
-import MyProgressPage from './components/MyProgressPage';
-import SettingsPage from './components/SettingsPage';
+import LiveClassesPage from './components/student/LiveClassesPage';
+import AssignmentsPage from './components/student/AssignmentsPage';
+import QuizzesTestsPage from './components/student/QuizzesTestsPage';
+import StudyMaterialsPage from './components/student/StudyMaterialsPage';
+import MyProgressPage from './components/student/MyProgressPage';
+import SettingsPage from './components/common/SettingsPage';
 import './App.css';
 
 function ProtectedRoute({ children }) {

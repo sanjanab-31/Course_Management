@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { Calendar, Clock, Download, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { getAllStudentEnrollments } from '../services/courseService';
-import { subscribeToCourseAssignments, subscribeToAssignmentSubmissions, submitAssignment } from '../services/assignmentService';
+import { useAuth } from '../../context/AuthContext';
+import { getAllStudentEnrollments } from '../../services/courseService';
+import { subscribeToCourseAssignments, subscribeToAssignmentSubmissions, submitAssignment } from '../../services/assignmentService';
 
 const AssignmentsPage = () => {
     const { currentUser } = useAuth();

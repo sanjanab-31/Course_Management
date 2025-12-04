@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { Plus, FileText, Clock, Users, Calendar, Edit, Eye } from 'lucide-react';
 
 const TeacherAssignments = () => {

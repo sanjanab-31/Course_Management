@@ -1,7 +1,7 @@
 import React from 'react';
 import DashboardLayout from './DashboardLayout';
 import { Mail, Phone, Calendar, MapPin, Edit } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ProfilePage = () => {
     const { currentUser } = useAuth();

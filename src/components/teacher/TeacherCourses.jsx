@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { Plus, Users, Calendar, BookOpen, Edit, Eye } from 'lucide-react';
 
 const TeacherCourses = () => {

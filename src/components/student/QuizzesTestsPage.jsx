@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { Clock, Trophy, Circle, Target, Play, CheckCircle, TrendingUp, Award, Users, Loader2 } from 'lucide-react';
 import QuizTakingModal from './QuizTakingModal';
-import { useAuth } from '../context/AuthContext';
-import { getAllStudentEnrollments } from '../services/courseService';
-import { subscribeToCourseQuizzes, subscribeToQuizAttempts, submitQuizAttempt } from '../services/quizService';
+import { useAuth } from '../../context/AuthContext';
+import { getAllStudentEnrollments } from '../../services/courseService';
+import { subscribeToCourseQuizzes, subscribeToQuizAttempts, submitQuizAttempt } from '../../services/quizService';
 
 const QuizzesTestsPage = () => {
     const { currentUser } = useAuth();

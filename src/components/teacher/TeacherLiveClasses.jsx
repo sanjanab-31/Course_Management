@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import DashboardLayout from '../DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { Video, Calendar, Clock, Users, Plus, MoreVertical, Play, Link as LinkIcon } from 'lucide-react';
 
 const TeacherLiveClasses = () => {

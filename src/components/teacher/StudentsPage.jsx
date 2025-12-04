@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import DashboardLayout from '../DashboardLayout';
+import DashboardLayout from '../common/DashboardLayout';
 import { Search, Plus, Mail, Phone, MoreHorizontal } from 'lucide-react';
 
 const StudentsPage = () => {
