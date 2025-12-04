@@ -53,7 +53,7 @@ const Sidebar = () => {
         { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/teacher' },
         { id: 'my-courses', label: 'My Courses', icon: BookOpen, path: '/teacher/courses' },
         { id: 'students', label: 'Students', icon: Users, path: '/students' },
-        { id: 'assignments', label: 'Assignments', icon: FileText, path: '/assignments' },
+        { id: 'assignments', label: 'Assignments', icon: FileText, path: '/teacher/assignments' },
         { id: 'gradebook', label: 'Gradebook', icon: BarChart2, path: '/gradebook' },
         { id: 'live-classes', label: 'Live Classes', icon: Video, path: '/live-classes' },
         { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },

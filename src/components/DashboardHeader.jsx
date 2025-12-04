@@ -30,6 +30,7 @@ const DashboardHeader = () => {
             '/my-courses': 'My Courses',
             '/student/courses': 'My Courses',
             '/teacher/courses': 'My Courses',
+            '/teacher/assignments': 'Assignments',
             '/live-classes': 'Live Classes',
             '/assignments': 'Assignments',
             '/quizzes-tests': 'Quizzes & Tests',
