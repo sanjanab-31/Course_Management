@@ -140,10 +140,11 @@ const Material = mongoose.model('Material', materialSchema);
 
 mongoose.connect(MONGODB_URI)
     .then(() => {
-        console.log('Connected to MongoDB');
+        console.log('✅ Connected to MongoDB');
     })
     .catch((error) => {
-        console.error('MongoDB connection error:', error);
+        console.error('❌ MongoDB connection error:', error.message);
+        console.error('Please make sure MongoDB is running or check your MONGODB_URI in .env file');
     });
 
 // ==================== COURSES API ====================
@@ -151,6 +152,13 @@ mongoose.connect(MONGODB_URI)
 // Get all courses
 app.get('/api/courses', async (req, res) => {
     try {
+        // Check MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ 
+                error: 'Database not connected', 
+                details: 'MongoDB connection is not established. Please check if MongoDB is running.' 
+            });
+        }
         const courses = await Course.find().sort({ createdAt: -1 });
         res.json(courses);
     } catch (error) {
@@ -176,6 +184,13 @@ app.get('/api/courses/:id', async (req, res) => {
 // Create a new course (Teacher)
 app.post('/api/courses', async (req, res) => {
     try {
+        // Check MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ 
+                error: 'Database not connected', 
+                details: 'MongoDB connection is not established. Please check if MongoDB is running.' 
+            });
+        }
         const { title, description, instructor, instructorId, category, level, duration, image, totalLectures } = req.body;
 
         const courseData = {
@@ -197,7 +212,7 @@ app.post('/api/courses', async (req, res) => {
         res.status(201).json(course);
     } catch (error) {
         console.error('Error creating course:', error);
-        res.status(500).json({ error: 'Failed to create course' });
+        res.status(500).json({ error: 'Failed to create course', details: error.message });
     }
 });
 
@@ -686,5 +701,10 @@ app.get('/api/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📡 API available at http://localhost:${PORT}/api`);
+    if (mongoose.connection.readyState !== 1) {
+        console.warn('⚠️  WARNING: MongoDB is not connected!');
+        console.warn('   Please start MongoDB or update MONGODB_URI in .env file');
+    }
 });

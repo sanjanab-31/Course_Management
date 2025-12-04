@@ -32,13 +32,41 @@ const QuizzesTestsPage = () => {
                 const enrollments = await getAllStudentEnrollments(currentUser.uid);
                 const courses = enrollments.map(e => ({
                     id: e.courseId,
-                    name: e.courseData.name,
-                    professor: e.courseData.professor,
+                    name: e.courseData?.title || e.courseData?.name,
+                    professor: e.courseData?.instructor || e.courseData?.professor,
                     ...e.courseData
                 }));
                 setEnrolledCourses(courses);
 
-                // 2. For each course, subscribe to quizzes
+                // 2. Fetch quizzes immediately for all enrolled courses
+                const allQuizzes = [];
+                for (const course of courses) {
+                    try {
+                        const courseQuizzes = await quizzesApi.getByCourse(course.id);
+                        courseQuizzes.forEach(quiz => {
+                            allQuizzes.push({
+                                ...quiz,
+                                courseId: course.id,
+                                courseName: course.name || course.title,
+                                professor: course.professor || course.instructor,
+                                status: 'available',
+                                score: 0,
+                                attempts: quiz.attempts || 3,
+                                questionsCount: quiz.questions ? quiz.questions.length : (quiz.totalQuestions || 0),
+                                questionsData: quiz.questions || [],
+                                duration: quiz.timeLimit || 30,
+                                points: quiz.passingScore || 100,
+                                difficulty: quiz.difficulty || 'medium',
+                                dueDate: quiz.dueDate || 'No due date'
+                            });
+                        });
+                    } catch (error) {
+                        console.error(`Error fetching quizzes for course ${course.id}:`, error);
+                    }
+                }
+                setQuizzes(allQuizzes);
+
+                // 3. For each course, subscribe to quizzes for real-time updates
                 courses.forEach(course => {
                     const unsubQuiz = subscribeToCourseQuizzes(course.id, (courseQuizzes) => {
                         // Update quizzes state
@@ -49,14 +77,18 @@ const QuizzesTestsPage = () => {
                             // Process new quizzes
                             const newQuizzes = courseQuizzes.map(quiz => ({
                                 ...quiz,
-                                courseName: course.name,
-                                professor: course.professor,
+                                courseId: course.id,
+                                courseName: course.name || course.title,
+                                professor: course.professor || course.instructor,
                                 status: 'available', // Default, will be updated by attempts listener
                                 score: 0,
                                 attempts: quiz.attempts || 3, // Default max attempts
-                                questionsCount: quiz.questions ? quiz.questions.length : (quiz.questionsData ? quiz.questionsData.length : 0),
-                                questionsData: quiz.questionsData || [],
-                                duration: quiz.duration || 30
+                                questionsCount: quiz.questions ? quiz.questions.length : (quiz.totalQuestions || 0),
+                                questionsData: quiz.questions || [],
+                                duration: quiz.timeLimit || quiz.duration || 30,
+                                points: quiz.passingScore || 100,
+                                difficulty: quiz.difficulty || 'medium',
+                                dueDate: quiz.dueDate || 'No due date'
                             }));
 
                             // Setup attempt listeners for these quizzes
@@ -66,14 +98,14 @@ const QuizzesTestsPage = () => {
                                         return currentQuizzes.map(q => {
                                             if (q.id === quiz.id) {
                                                 const lastAttempt = attempts.length > 0 ? attempts[0] : null;
-                                                const bestScore = attempts.reduce((max, attempt) => Math.max(max, attempt.score), 0);
+                                                const bestScore = attempts.reduce((max, attempt) => Math.max(max, attempt.score || 0), 0);
 
                                                 return {
                                                     ...q,
                                                     status: attempts.length > 0 ? 'completed' : 'available',
                                                     score: lastAttempt ? lastAttempt.score : 0,
                                                     bestScore: bestScore,
-                                                    completedDate: lastAttempt ? new Date(lastAttempt.submittedAt?.toDate()).toLocaleDateString() : null,
+                                                    completedDate: lastAttempt ? (lastAttempt.submittedAt ? new Date(lastAttempt.submittedAt).toLocaleDateString() : new Date().toLocaleDateString()) : null,
                                                     attemptsUsed: attempts.length
                                                 };
                                             }

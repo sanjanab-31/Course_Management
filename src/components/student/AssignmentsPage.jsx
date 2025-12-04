@@ -30,8 +30,8 @@ const AssignmentsPage = () => {
                 const enrollments = await getAllStudentEnrollments(currentUser.uid);
                 const courses = enrollments.map(e => ({
                     id: e.courseId,
-                    name: e.courseData.name,
-                    professor: e.courseData.professor,
+                    name: e.courseData?.title || e.courseData?.name,
+                    professor: e.courseData?.instructor || e.courseData?.professor,
                     ...e.courseData
                 }));
 
@@ -40,6 +40,30 @@ const AssignmentsPage = () => {
                     return;
                 }
 
+                // Fetch assignments immediately for all enrolled courses
+                const allAssignments = [];
+                for (const course of courses) {
+                    try {
+                        const courseAssignments = await assignmentsApi.getByCourse(course.id);
+                        courseAssignments.forEach(assignment => {
+                            allAssignments.push({
+                                ...assignment,
+                                courseId: course.id,
+                                courseName: course.name || course.title,
+                                professor: course.professor || course.instructor,
+                                status: 'pending',
+                                submittedDate: null,
+                                score: null,
+                                requirements: assignment.requirements || []
+                            });
+                        });
+                    } catch (error) {
+                        console.error(`Error fetching assignments for course ${course.id}:`, error);
+                    }
+                }
+                setAssignments(allAssignments);
+
+                // Then set up subscriptions for real-time updates
                 courses.forEach(course => {
                     const unsubAssignment = subscribeToCourseAssignments(course.id, (courseAssignments) => {
                         setAssignments(prevAssignments => {
@@ -49,12 +73,15 @@ const AssignmentsPage = () => {
                             // Process new assignments
                             const newAssignments = courseAssignments.map(assignment => ({
                                 ...assignment,
-                                courseName: course.name,
-                                professor: course.professor,
+                                courseId: course.id,
+                                courseName: course.name || course.title,
+                                professor: course.professor || course.instructor,
                                 status: 'pending', // Default
                                 submittedDate: null,
                                 score: null,
-                                requirements: assignment.requirements || []
+                                requirements: assignment.requirements || [],
+                                points: assignment.maxScore || assignment.points || 100,
+                                dueDate: assignment.dueDate ? (typeof assignment.dueDate === 'string' ? assignment.dueDate : new Date(assignment.dueDate).toLocaleDateString()) : 'No due date'
                             }));
 
                             // Setup submission listeners
@@ -67,8 +94,8 @@ const AssignmentsPage = () => {
                                                 return {
                                                     ...a,
                                                     status: submissions.length > 0 ? 'submitted' : 'pending',
-                                                    submittedDate: lastSubmission ? new Date(lastSubmission.submittedAt?.toDate()).toLocaleString() : null,
-                                                    score: lastSubmission?.score || null
+                                                    submittedDate: lastSubmission ? (lastSubmission.submittedAt ? new Date(lastSubmission.submittedAt).toLocaleString() : new Date().toLocaleString()) : null,
+                                                    score: lastSubmission?.grade || lastSubmission?.score || null
                                                 };
                                             }
                                             return a;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StudentLayout from './StudentLayout';
 import { useAuth } from '../../context/AuthContext';
 import { getAllStudentEnrollments, subscribeToStudentEnrollments } from '../../services/courseService';
+import { liveClassesApi } from '../../services/api';
 import {
     getTodayClasses,
     getUpcomingClasses,
@@ -17,6 +18,7 @@ const LiveClassesPage = () => {
     const [activeTab, setActiveTab] = useState('today');
     const [allClasses, setAllClasses] = useState([]);
     const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
+    const [enrollments, setEnrollments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -35,9 +37,10 @@ const LiveClassesPage = () => {
                 setLoading(false);
                 setError(null);
 
-                const enrollments = await getAllStudentEnrollments(currentUser.uid);
-                const courseIds = enrollments.map(enrollment => enrollment.courseId);
+                const enrollmentsData = await getAllStudentEnrollments(currentUser.uid);
+                const courseIds = enrollmentsData.map(enrollment => enrollment.courseId);
                 setEnrolledCourseIds(courseIds);
+                setEnrollments(enrollmentsData);
             } catch (err) {
                 console.error('Error fetching enrollments:', err);
                 setError('Failed to load enrollments');
@@ -62,24 +65,74 @@ const LiveClassesPage = () => {
         };
     }, [currentUser]);
 
-    // Subscribe to real-time live classes updates
+    // Fetch and subscribe to real-time live classes updates
     useEffect(() => {
         if (enrolledCourseIds.length === 0) {
             setAllClasses([]);
             return;
         }
 
+        // Fetch classes immediately
+        const fetchClasses = async () => {
+            try {
+                const allClassesData = [];
+                for (const courseId of enrolledCourseIds) {
+                    try {
+                        const classes = await liveClassesApi.getByCourse(courseId);
+                        // Get course info from enrollments state
+                        const enrollment = enrollments.find(e => e.courseId === courseId);
+                        const courseName = enrollment?.courseData?.title || enrollment?.courseData?.name || 'Course';
+                        const instructor = enrollment?.courseData?.instructor || enrollment?.courseData?.professor || 'Instructor';
+                        
+                        classes.forEach(cls => {
+                            allClassesData.push({
+                                ...cls,
+                                courseId,
+                                courseName,
+                                professor: cls.instructor || instructor,
+                                startTime: cls.scheduledAt || cls.startTime,
+                                endTime: cls.endTime,
+                                meetingUrl: cls.meetingLink || cls.meetingUrl,
+                                meetingLink: cls.meetingLink || cls.meetingUrl
+                            });
+                        });
+                    } catch (error) {
+                        console.error(`Error fetching classes for course ${courseId}:`, error);
+                    }
+                }
+                setAllClasses(allClassesData);
+            } catch (error) {
+                console.error('Error fetching live classes:', error);
+            }
+        };
+
+        fetchClasses();
+
+        // Then subscribe for real-time updates
         const unsubscribeClasses = subscribeToLiveClassesUpdates(
             enrolledCourseIds,
             (classesData) => {
-                setAllClasses(classesData);
+                // Enhance with course info
+                const enhancedClasses = classesData.map(cls => {
+                    const enrollment = enrollments.find(e => e.courseId === cls.courseId);
+                    return {
+                        ...cls,
+                        courseId: cls.courseId,
+                        courseName: enrollment?.courseData?.title || enrollment?.courseData?.name || 'Course',
+                        professor: cls.instructor || enrollment?.courseData?.instructor || enrollment?.courseData?.professor || 'Instructor',
+                        startTime: cls.scheduledAt || cls.startTime,
+                        meetingUrl: cls.meetingLink || cls.meetingUrl,
+                        meetingLink: cls.meetingLink || cls.meetingUrl
+                    };
+                });
+                setAllClasses(enhancedClasses);
             }
         );
 
         return () => {
             unsubscribeClasses();
         };
-    }, [enrolledCourseIds]);
+    }, [enrolledCourseIds, enrollments, currentUser]);
 
     // Filter classes based on active tab
     const getClassesByTab = () => {
@@ -109,8 +162,9 @@ const LiveClassesPage = () => {
     };
 
     const handleJoinClass = (classItem) => {
-        if (classItem.meetingUrl) {
-            window.open(classItem.meetingUrl, '_blank');
+        const meetingLink = classItem.meetingLink || classItem.meetingUrl;
+        if (meetingLink) {
+            window.open(meetingLink, '_blank');
         } else {
             alert('Meeting URL not available');
         }
@@ -243,18 +297,20 @@ const LiveClassesPage = () => {
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                                                         <Video className="w-4 h-4" />
-                                                        <span>{classItem.participants || 0} Participants</span>
+                                                        <span>{classItem.attendees || classItem.participants || 0} Participants</span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Right Side: Meeting ID and Button */}
+                                            {/* Right Side: Meeting Link and Button */}
                                             <div className="flex flex-col items-end space-y-3">
-                                                <div className="text-right">
-                                                    <p className="text-xs text-gray-500">
-                                                        Meeting ID: {classItem.meetingId || 'N/A'}
-                                                    </p>
-                                                </div>
+                                                {(classItem.meetingLink || classItem.meetingUrl) && (
+                                                    <div className="text-right">
+                                                        <p className="text-xs text-gray-500">
+                                                            Meeting Link Available
+                                                        </p>
+                                                    </div>
+                                                )}
                                                 {classItem.status === 'live' ? (
                                                     <button
                                                         onClick={() => handleJoinClass(classItem)}

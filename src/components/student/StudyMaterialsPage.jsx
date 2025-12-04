@@ -30,14 +30,22 @@ const StudyMaterialsPage = () => {
                 setError(null);
 
                 // Get student's enrolled courses
-                const enrollments = await getAllStudentEnrollments(currentUser.uid);
-                const courseIds = enrollments.map(enrollment => enrollment.courseId);
+                const enrollmentsData = await getAllStudentEnrollments(currentUser.uid);
+                const courseIds = enrollmentsData.map(enrollment => enrollment.courseId);
                 setEnrolledCourseIds(courseIds);
 
                 // Fetch materials for enrolled courses
                 if (courseIds.length > 0) {
                     const materialsData = await getMaterialsForEnrolledCourses(courseIds);
-                    setMaterials(materialsData);
+                    // Enhance materials with course names
+                    const enhancedMaterials = materialsData.map(material => {
+                        const enrollment = enrollmentsData.find(e => e.courseId === material.courseId);
+                        return {
+                            ...material,
+                            courseName: enrollment?.courseData?.title || enrollment?.courseData?.name || 'Course'
+                        };
+                    });
+                    setMaterials(enhancedMaterials);
                 } else {
                     setMaterials([]);
                 }
@@ -74,8 +82,22 @@ const StudyMaterialsPage = () => {
 
         const unsubscribeMaterials = subscribeToEnrolledMaterials(
             enrolledCourseIds,
-            (materialsData) => {
-                setMaterials(materialsData);
+            async (materialsData) => {
+                // Enhance with course names
+                try {
+                    const enrollmentsData = await getAllStudentEnrollments(currentUser.uid);
+                    const enhancedMaterials = materialsData.map(material => {
+                        const enrollment = enrollmentsData.find(e => e.courseId === material.courseId);
+                        return {
+                            ...material,
+                            courseName: enrollment?.courseData?.title || enrollment?.courseData?.name || 'Course'
+                        };
+                    });
+                    setMaterials(enhancedMaterials);
+                } catch (error) {
+                    console.error('Error enhancing materials:', error);
+                    setMaterials(materialsData);
+                }
             }
         );
 

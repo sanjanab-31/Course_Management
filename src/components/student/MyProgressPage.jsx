@@ -3,8 +3,10 @@ import StudentLayout from './StudentLayout';
 import { TrendingUp, Award, BookOpen, Clock, Loader2, Target, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getAllStudentEnrollments } from '../../services/courseService';
-import { subscribeToCourseQuizzes, subscribeToQuizAttempts } from '../../services/quizService';
-import { subscribeToCourseAssignments, subscribeToAssignmentSubmissions } from '../../services/assignmentService';
+import { quizzesApi } from '../../services/api';
+import { assignmentsApi } from '../../services/api';
+import { subscribeToCourseQuizzes, subscribeToQuizAttempts, getStudentQuizAttempts } from '../../services/quizService';
+import { subscribeToCourseAssignments, subscribeToAssignmentSubmissions, getStudentAssignmentSubmissions } from '../../services/assignmentService';
 
 const MyProgressPage = () => {
     const { currentUser } = useAuth();
@@ -29,56 +31,99 @@ const MyProgressPage = () => {
                 const enrollments = await getAllStudentEnrollments(currentUser.uid);
                 const courses = enrollments.map(e => ({
                     id: e.courseId,
-                    name: e.courseData.name,
-                    professor: e.courseData.professor,
-                    progress: e.enrollmentData.progress || 0,
-                    color: e.courseData.color || 'blue',
+                    name: e.courseData?.title || e.courseData?.name,
+                    professor: e.courseData?.instructor || e.courseData?.professor,
+                    progress: e.enrollmentData?.progress || 0,
+                    color: e.courseData?.color || 'blue',
                     ...e.courseData
                 }));
                 setEnrolledCourses(courses);
 
-                // Track all quizzes and assignments
-                let allQuizzes = [];
-                let allAssignments = [];
-                let quizAttempts = [];
-                let assignmentSubmissions = [];
+                // Fetch quizzes and assignments immediately, then subscribe for updates
+                const fetchQuizzesAndAssignments = async () => {
+                    let allQuizzes = [];
+                    let allAssignments = [];
+                    let quizAttempts = [];
+                    let assignmentSubmissions = [];
 
-                // For each course, subscribe to quizzes and assignments
-                for (const course of courses) {
-                    // Subscribe to quizzes
-                    const unsubQuiz = subscribeToCourseQuizzes(course.id, (courseQuizzes) => {
-                        allQuizzes = allQuizzes.filter(q => q.courseId !== course.id);
-                        allQuizzes.push(...courseQuizzes.map(q => ({ ...q, courseId: course.id })));
+                    // Fetch all quizzes and assignments for enrolled courses
+                    for (const course of courses) {
+                        try {
+                            // Fetch quizzes
+                            const courseQuizzes = await quizzesApi.getByCourse(course.id);
+                            allQuizzes.push(...courseQuizzes.map(q => ({ ...q, courseId: course.id })));
 
-                        // For each quiz, get attempts
-                        courseQuizzes.forEach(quiz => {
-                            const unsubAttempt = subscribeToQuizAttempts(course.id, quiz.id, currentUser.uid, (attempts) => {
-                                quizAttempts = quizAttempts.filter(a => a.quizId !== quiz.id);
-                                quizAttempts.push(...attempts.map(a => ({ ...a, quizId: quiz.id, courseId: course.id })));
-                                updateQuizStats(allQuizzes, quizAttempts);
+                            // Fetch assignments
+                            const courseAssignments = await assignmentsApi.getByCourse(course.id);
+                            allAssignments.push(...courseAssignments.map(a => ({ ...a, courseId: course.id })));
+
+                            // For each quiz, fetch attempts
+                            for (const quiz of courseQuizzes) {
+                                try {
+                                    const attempts = await getStudentQuizAttempts(course.id, quiz.id, currentUser.uid);
+                                    quizAttempts.push(...attempts.map(a => ({ ...a, quizId: quiz.id, courseId: course.id })));
+                                } catch (error) {
+                                    console.error(`Error fetching attempts for quiz ${quiz.id}:`, error);
+                                }
+                            }
+
+                            // For each assignment, fetch submissions
+                            for (const assignment of courseAssignments) {
+                                try {
+                                    const submissions = await getStudentAssignmentSubmissions(course.id, assignment.id, currentUser.uid);
+                                    assignmentSubmissions.push(...submissions.map(s => ({ ...s, assignmentId: assignment.id, courseId: course.id })));
+                                } catch (error) {
+                                    console.error(`Error fetching submissions for assignment ${assignment.id}:`, error);
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching data for course ${course.id}:`, error);
+                        }
+                    }
+
+                    // Update stats with initial data
+                    updateQuizStats(allQuizzes, quizAttempts);
+                    updateAssignmentStats(allAssignments, assignmentSubmissions);
+
+                    // Then subscribe for real-time updates
+                    for (const course of courses) {
+                        // Subscribe to quizzes
+                        const unsubQuiz = subscribeToCourseQuizzes(course.id, (courseQuizzes) => {
+                            allQuizzes = allQuizzes.filter(q => q.courseId !== course.id);
+                            allQuizzes.push(...courseQuizzes.map(q => ({ ...q, courseId: course.id })));
+
+                            // For each quiz, get attempts
+                            courseQuizzes.forEach(quiz => {
+                                const unsubAttempt = subscribeToQuizAttempts(course.id, quiz.id, currentUser.uid, (attempts) => {
+                                    quizAttempts = quizAttempts.filter(a => a.quizId !== quiz.id);
+                                    quizAttempts.push(...attempts.map(a => ({ ...a, quizId: quiz.id, courseId: course.id })));
+                                    updateQuizStats(allQuizzes, quizAttempts);
+                                });
+                                unsubscribes.push(unsubAttempt);
                             });
-                            unsubscribes.push(unsubAttempt);
                         });
-                    });
-                    unsubscribes.push(unsubQuiz);
+                        unsubscribes.push(unsubQuiz);
 
-                    // Subscribe to assignments
-                    const unsubAssignment = subscribeToCourseAssignments(course.id, (courseAssignments) => {
-                        allAssignments = allAssignments.filter(a => a.courseId !== course.id);
-                        allAssignments.push(...courseAssignments.map(a => ({ ...a, courseId: course.id })));
+                        // Subscribe to assignments
+                        const unsubAssignment = subscribeToCourseAssignments(course.id, (courseAssignments) => {
+                            allAssignments = allAssignments.filter(a => a.courseId !== course.id);
+                            allAssignments.push(...courseAssignments.map(a => ({ ...a, courseId: course.id })));
 
-                        // For each assignment, get submissions
-                        courseAssignments.forEach(assignment => {
-                            const unsubSubmission = subscribeToAssignmentSubmissions(course.id, assignment.id, currentUser.uid, (submissions) => {
-                                assignmentSubmissions = assignmentSubmissions.filter(s => s.assignmentId !== assignment.id);
-                                assignmentSubmissions.push(...submissions.map(s => ({ ...s, assignmentId: assignment.id, courseId: course.id })));
-                                updateAssignmentStats(allAssignments, assignmentSubmissions);
+                            // For each assignment, get submissions
+                            courseAssignments.forEach(assignment => {
+                                const unsubSubmission = subscribeToAssignmentSubmissions(course.id, assignment.id, currentUser.uid, (submissions) => {
+                                    assignmentSubmissions = assignmentSubmissions.filter(s => s.assignmentId !== assignment.id);
+                                    assignmentSubmissions.push(...submissions.map(s => ({ ...s, assignmentId: assignment.id, courseId: course.id })));
+                                    updateAssignmentStats(allAssignments, assignmentSubmissions);
+                                });
+                                unsubscribes.push(unsubSubmission);
                             });
-                            unsubscribes.push(unsubSubmission);
                         });
-                    });
-                    unsubscribes.push(unsubAssignment);
-                }
+                        unsubscribes.push(unsubAssignment);
+                    }
+                };
+
+                fetchQuizzesAndAssignments();
 
                 setLoading(false);
             } catch (error) {

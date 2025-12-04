@@ -30,7 +30,7 @@ const MyCoursesPage = () => {
     const [notification, setNotification] = useState(null);
     const [certificateData, setCertificateData] = useState({});
 
-    // Fetch courses and enrollments from Firebase
+    // Fetch courses and enrollments - refresh periodically to show new courses from teachers
     useEffect(() => {
         if (!currentUser) {
             setLoading(false);
@@ -54,8 +54,13 @@ const MyCoursesPage = () => {
             }
         };
 
+        // Initial fetch
         fetchData();
 
+        // Refresh every 10 seconds to show new courses from teachers
+        const refreshInterval = setInterval(fetchData, 10000);
+
+        return () => clearInterval(refreshInterval);
     }, [currentUser]);
 
     // Check certificate eligibility for enrolled courses
@@ -91,6 +96,10 @@ const MyCoursesPage = () => {
             setEnrolling(courseId);
             await enrollmentsApi.enroll(courseId, currentUser.uid);
             showNotification('Successfully enrolled in course!', 'success');
+            
+            // Refresh enrollments to show updated data
+            const enrollmentsData = await enrollmentsApi.getByUserId(currentUser.uid);
+            setEnrollments(enrollmentsData);
         } catch (error) {
             console.error('Error enrolling:', error);
             showNotification('Failed to enroll in course', 'error');
