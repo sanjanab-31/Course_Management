@@ -1,196 +1,109 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from './DashboardLayout';
-import { Clock, Trophy, Circle, Target, Play, CheckCircle, TrendingUp, Award, Users } from 'lucide-react';
+import { Clock, Trophy, Circle, Target, Play, CheckCircle, TrendingUp, Award, Users, Loader2 } from 'lucide-react';
 import QuizTakingModal from './QuizTakingModal';
+import { useAuth } from '../context/AuthContext';
+import { getAllStudentEnrollments } from '../services/courseService';
+import { subscribeToCourseQuizzes, subscribeToQuizAttempts, submitQuizAttempt } from '../services/quizService';
 
 const QuizzesTestsPage = () => {
+    const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('available');
-    const [quizzes, setQuizzes] = useState([
-        {
-            id: 1,
-            title: 'Data Structures Quiz - Trees',
-            course: 'Data Structures',
-            professor: 'Prof. Nishant Kumar',
-            difficulty: 'Medium',
-            duration: 30,
-            points: 50,
-            questions: 15,
-            attempts: 3,
-            dueDate: '9/26/2024',
-            status: 'available',
-            questionsData: [
-                {
-                    id: 1,
-                    question: 'What is the time complexity of searching in a balanced BST?',
-                    options: ['O(n)', 'O(log n)', 'O(n²)', 'O(1)'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 2,
-                    question: 'Which traversal visits the root node first?',
-                    options: ['Inorder', 'Preorder', 'Postorder', 'Level order'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 3,
-                    question: 'What is the maximum number of children a binary tree node can have?',
-                    options: ['1', '2', '3', 'Unlimited'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 4,
-                    question: 'Which data structure is used for BFS traversal?',
-                    options: ['Stack', 'Queue', 'Array', 'Linked List'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 5,
-                    question: 'What is the height of a tree with only one node?',
-                    options: ['-1', '0', '1', '2'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 6,
-                    question: 'In which tree traversal is the left subtree visited first?',
-                    options: ['Preorder only', 'Inorder only', 'Both Preorder and Inorder', 'Postorder only'],
-                    correctAnswer: 2
-                },
-                {
-                    id: 7,
-                    question: 'What is a complete binary tree?',
-                    options: ['All levels are filled', 'All levels except last are filled', 'Only root exists', 'Tree with one child'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 8,
-                    question: 'Which tree is always balanced?',
-                    options: ['Binary Tree', 'BST', 'AVL Tree', 'General Tree'],
-                    correctAnswer: 2
-                },
-                {
-                    id: 9,
-                    question: 'What is the space complexity of DFS?',
-                    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
-                    correctAnswer: 2
-                },
-                {
-                    id: 10,
-                    question: 'Which node has no children?',
-                    options: ['Root', 'Internal', 'Leaf', 'Parent'],
-                    correctAnswer: 2
-                },
-                {
-                    id: 11,
-                    question: 'What is the minimum number of nodes in a binary tree of height h?',
-                    options: ['h', 'h+1', '2^h', '2^h - 1'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 12,
-                    question: 'Which traversal gives sorted order in BST?',
-                    options: ['Preorder', 'Inorder', 'Postorder', 'Level order'],
-                    correctAnswer: 1
-                },
-                {
-                    id: 13,
-                    question: 'What is a binary search tree?',
-                    options: ['Left < Root < Right', 'Left > Root > Right', 'No order', 'Random order'],
-                    correctAnswer: 0
-                },
-                {
-                    id: 14,
-                    question: 'Which operation is NOT O(log n) in balanced BST?',
-                    options: ['Search', 'Insert', 'Delete', 'Traversal'],
-                    correctAnswer: 3
-                },
-                {
-                    id: 15,
-                    question: 'What is the degree of a leaf node?',
-                    options: ['0', '1', '2', 'Variable'],
-                    correctAnswer: 0
-                }
-            ]
-        },
-        {
-            id: 2,
-            title: 'DBMS Mid-Term Test',
-            course: 'Database Management',
-            professor: 'Dr. Deepak Sharma',
-            difficulty: 'Hard',
-            duration: 60,
-            points: 100,
-            questions: 25,
-            attempts: 1,
-            dueDate: '9/28/2024',
-            status: 'available',
-            questionsData: []
-        },
-        {
-            id: 3,
-            title: 'Operating Systems Quick Quiz',
-            course: 'Operating Systems',
-            professor: 'Prof. Satyam Singh',
-            difficulty: 'Easy',
-            duration: 20,
-            points: 30,
-            questions: 10,
-            attempts: 3,
-            dueDate: '9/25/2024',
-            status: 'available',
-            questionsData: []
-        },
-        {
-            id: 4,
-            title: 'Data Structures Mid-Term Quiz',
-            course: 'Data Structures',
-            professor: 'Prof. Nishant Kumar',
-            difficulty: 'Medium',
-            duration: 30,
-            points: 50,
-            questions: 20,
-            attempts: 3,
-            dueDate: '9/20/2024',
-            status: 'completed',
-            score: 95,
-            totalScore: 100,
-            completedDate: '9/19/2024'
-        },
-        {
-            id: 5,
-            title: 'DBMS Chapter 5 Quiz',
-            course: 'Database Management',
-            professor: 'Dr. Deepak Sharma',
-            difficulty: 'Easy',
-            duration: 20,
-            points: 25,
-            questions: 15,
-            attempts: 2,
-            dueDate: '9/15/2024',
-            status: 'completed',
-            score: 88,
-            totalScore: 100,
-            completedDate: '9/14/2024'
-        },
-        {
-            id: 6,
-            title: 'OS Theory Test',
-            course: 'Operating Systems',
-            professor: 'Prof. Satyam Singh',
-            difficulty: 'Hard',
-            duration: 45,
-            points: 75,
-            questions: 25,
-            attempts: 1,
-            dueDate: '9/10/2024',
-            status: 'completed',
-            score: 81,
-            totalScore: 100,
-            completedDate: '9/9/2024'
-        }
-    ]);
-
+    const [quizzes, setQuizzes] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
     const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+    const [enrolledCourses, setEnrolledCourses] = useState([]);
+
+    // Fetch enrolled courses and set up listeners
+    useEffect(() => {
+        if (!currentUser) {
+            setLoading(false);
+            return;
+        }
+
+        let quizUnsubscribes = [];
+        let attemptUnsubscribes = [];
+
+        const fetchEnrollmentsAndSetupListeners = async () => {
+            try {
+                setLoading(true);
+                // 1. Get enrolled courses
+                const enrollments = await getAllStudentEnrollments(currentUser.uid);
+                const courses = enrollments.map(e => ({
+                    id: e.courseId,
+                    name: e.courseData.name,
+                    professor: e.courseData.professor,
+                    ...e.courseData
+                }));
+                setEnrolledCourses(courses);
+
+                // 2. For each course, subscribe to quizzes
+                courses.forEach(course => {
+                    const unsubQuiz = subscribeToCourseQuizzes(course.id, (courseQuizzes) => {
+                        // Update quizzes state
+                        setQuizzes(prevQuizzes => {
+                            // Remove existing quizzes for this course to avoid duplicates/stale data
+                            const otherQuizzes = prevQuizzes.filter(q => q.courseId !== course.id);
+
+                            // Process new quizzes
+                            const newQuizzes = courseQuizzes.map(quiz => ({
+                                ...quiz,
+                                courseName: course.name,
+                                professor: course.professor,
+                                status: 'available', // Default, will be updated by attempts listener
+                                score: 0,
+                                attempts: quiz.attempts || 3, // Default max attempts
+                                questionsCount: quiz.questions ? quiz.questions.length : (quiz.questionsData ? quiz.questionsData.length : 0),
+                                questionsData: quiz.questionsData || [],
+                                duration: quiz.duration || 30
+                            }));
+
+                            // Setup attempt listeners for these quizzes
+                            newQuizzes.forEach(quiz => {
+                                const unsubAttempt = subscribeToQuizAttempts(course.id, quiz.id, currentUser.uid, (attempts) => {
+                                    setQuizzes(currentQuizzes => {
+                                        return currentQuizzes.map(q => {
+                                            if (q.id === quiz.id) {
+                                                const lastAttempt = attempts.length > 0 ? attempts[0] : null;
+                                                const bestScore = attempts.reduce((max, attempt) => Math.max(max, attempt.score), 0);
+
+                                                return {
+                                                    ...q,
+                                                    status: attempts.length > 0 ? 'completed' : 'available',
+                                                    score: lastAttempt ? lastAttempt.score : 0,
+                                                    bestScore: bestScore,
+                                                    completedDate: lastAttempt ? new Date(lastAttempt.submittedAt?.toDate()).toLocaleDateString() : null,
+                                                    attemptsUsed: attempts.length
+                                                };
+                                            }
+                                            return q;
+                                        });
+                                    });
+                                });
+                                attemptUnsubscribes.push(unsubAttempt);
+                            });
+
+                            return [...otherQuizzes, ...newQuizzes];
+                        });
+                    });
+                    quizUnsubscribes.push(unsubQuiz);
+                });
+
+                setLoading(false);
+            } catch (error) {
+                console.error("Error setting up quiz listeners:", error);
+                setLoading(false);
+            }
+        };
+
+        fetchEnrollmentsAndSetupListeners();
+
+        return () => {
+            quizUnsubscribes.forEach(unsub => unsub());
+            attemptUnsubscribes.forEach(unsub => unsub());
+        };
+    }, [currentUser]);
 
     const availableQuizzes = quizzes.filter(q => q.status === 'available');
     const completedQuizzes = quizzes.filter(q => q.status === 'completed');
@@ -204,26 +117,30 @@ const QuizzesTestsPage = () => {
         setIsQuizModalOpen(true);
     };
 
-    const handleQuizComplete = (quizId, score, totalScore) => {
-        setQuizzes(prevQuizzes => prevQuizzes.map(quiz => {
-            if (quiz.id === quizId) {
-                return {
-                    ...quiz,
-                    status: 'completed',
-                    score: score,
-                    totalScore: totalScore,
-                    completedDate: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-                };
-            }
-            return quiz;
-        }));
-        setIsQuizModalOpen(false);
-        setSelectedQuiz(null);
-        setActiveTab('completed');
+    const handleQuizComplete = async (quizId, score, totalScore) => {
+        try {
+            if (!selectedQuiz) return;
+
+            const attemptData = {
+                score: (score / totalScore) * 100, // Store as percentage
+                rawScore: score,
+                totalScore: totalScore,
+                answers: [] // You might want to pass answers here if available
+            };
+
+            await submitQuizAttempt(selectedQuiz.courseId, quizId, currentUser.uid, attemptData);
+
+            setIsQuizModalOpen(false);
+            setSelectedQuiz(null);
+            setActiveTab('completed');
+        } catch (error) {
+            console.error("Error submitting quiz:", error);
+            // Handle error (show notification)
+        }
     };
 
     const getDifficultyColor = (difficulty) => {
-        switch (difficulty.toLowerCase()) {
+        switch (difficulty?.toLowerCase()) {
             case 'easy':
                 return 'bg-green-100 text-green-700';
             case 'medium':
@@ -241,6 +158,16 @@ const QuizzesTestsPage = () => {
         const now = new Date();
         return `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
     };
+
+    if (loading) {
+        return (
+            <DashboardLayout>
+                <div className="flex items-center justify-center h-screen">
+                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout>
@@ -271,8 +198,8 @@ const QuizzesTestsPage = () => {
                     <button
                         onClick={() => setActiveTab('available')}
                         className={`pb-3 px-1 font-medium text-sm transition-colors relative ${activeTab === 'available'
-                                ? 'text-gray-900'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'text-gray-900'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Available ({availableQuizzes.length})
@@ -283,8 +210,8 @@ const QuizzesTestsPage = () => {
                     <button
                         onClick={() => setActiveTab('completed')}
                         className={`pb-3 px-1 font-medium text-sm transition-colors relative ${activeTab === 'completed'
-                                ? 'text-gray-900'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'text-gray-900'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Completed ({completedQuizzes.length})
@@ -295,8 +222,8 @@ const QuizzesTestsPage = () => {
                     <button
                         onClick={() => setActiveTab('analytics')}
                         className={`pb-3 px-1 font-medium text-sm transition-colors relative ${activeTab === 'analytics'
-                                ? 'text-gray-900'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'text-gray-900'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Performance Analytics
@@ -310,7 +237,11 @@ const QuizzesTestsPage = () => {
             {/* Tab Content */}
             {activeTab === 'available' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {availableQuizzes.map((quiz) => (
+                    {availableQuizzes.length === 0 ? (
+                        <div className="col-span-full text-center py-12 text-gray-500">
+                            No available quizzes found. Enroll in courses to see quizzes here.
+                        </div>
+                    ) : availableQuizzes.map((quiz) => (
                         <div key={quiz.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                             <div className="flex items-start justify-between mb-3">
                                 <h3 className="text-lg font-bold text-gray-900 flex-1">{quiz.title}</h3>
@@ -319,7 +250,7 @@ const QuizzesTestsPage = () => {
                                 </span>
                             </div>
 
-                            <p className="text-sm text-gray-600 mb-1">{quiz.course}: <span className="font-medium">{quiz.professor}</span></p>
+                            <p className="text-sm text-gray-600 mb-1">{quiz.courseName}: <span className="font-medium">{quiz.professor}</span></p>
                             <p className="text-sm text-gray-600 mb-4">Due: {quiz.dueDate}</p>
 
                             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -341,7 +272,7 @@ const QuizzesTestsPage = () => {
                                     <Circle className="w-4 h-4 text-green-600" />
                                     <div>
                                         <p className="text-xs text-gray-600">Questions</p>
-                                        <p className="text-sm font-semibold text-gray-900">{quiz.questions} questions</p>
+                                        <p className="text-sm font-semibold text-gray-900">{quiz.questionsCount} questions</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -367,7 +298,11 @@ const QuizzesTestsPage = () => {
 
             {activeTab === 'completed' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {completedQuizzes.map((quiz) => (
+                    {completedQuizzes.length === 0 ? (
+                        <div className="col-span-full text-center py-12 text-gray-500">
+                            No completed quizzes yet.
+                        </div>
+                    ) : completedQuizzes.map((quiz) => (
                         <div key={quiz.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                             <div className="flex items-start justify-between mb-3">
                                 <h3 className="text-lg font-bold text-gray-900 flex-1">{quiz.title}</h3>
@@ -377,13 +312,13 @@ const QuizzesTestsPage = () => {
                                 </span>
                             </div>
 
-                            <p className="text-sm text-gray-600 mb-1">{quiz.course}: <span className="font-medium">{quiz.professor}</span></p>
+                            <p className="text-sm text-gray-600 mb-1">{quiz.courseName}: <span className="font-medium">{quiz.professor}</span></p>
                             <p className="text-sm text-gray-600 mb-4">Completed: {quiz.completedDate}</p>
 
                             <div className="bg-gray-50 rounded-lg p-4 mb-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm text-gray-600">Your Score</span>
-                                    <span className="text-2xl font-bold text-green-600">{quiz.score}%</span>
+                                    <span className="text-2xl font-bold text-green-600">{Math.round(quiz.score)}%</span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                     <div
@@ -439,8 +374,7 @@ const QuizzesTestsPage = () => {
                             </div>
                             <h3 className="text-3xl font-bold text-gray-900 mb-1">{completedQuizzes.length}</h3>
                             <p className="text-sm text-gray-600">Quizzes Completed</p>
-                            <p className="text-xs text-gray-500 mt-1">This Semester</p>
-                            <p className="text-xs text-green-600 font-semibold mt-1">+3 this week</p>
+                            <p className="text-xs text-gray-500 mt-1">Total</p>
                         </div>
 
                         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -449,29 +383,32 @@ const QuizzesTestsPage = () => {
                                     <Users className="w-6 h-6 text-purple-600" />
                                 </div>
                             </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-1">#5</h3>
+                            <h3 className="text-3xl font-bold text-gray-900 mb-1">--</h3>
                             <p className="text-sm text-gray-600">Class Ranking</p>
-                            <p className="text-xs text-gray-500 mt-1">Out of 45 students</p>
-                            <p className="text-xs text-purple-600 font-semibold mt-1">Top 11%</p>
+                            <p className="text-xs text-gray-500 mt-1">Not available yet</p>
                         </div>
                     </div>
 
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                         <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Performance</h3>
                         <div className="space-y-3">
-                            {completedQuizzes.slice(0, 5).map((quiz) => (
-                                <div key={quiz.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-gray-900 text-sm">{quiz.title}</p>
-                                        <p className="text-xs text-gray-600">{quiz.course} • {quiz.completedDate}</p>
+                            {completedQuizzes.length === 0 ? (
+                                <p className="text-gray-500 text-sm">No quizzes completed yet.</p>
+                            ) : (
+                                completedQuizzes.slice(0, 5).map((quiz) => (
+                                    <div key={quiz.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-gray-900 text-sm">{quiz.title}</p>
+                                            <p className="text-xs text-gray-600">{quiz.courseName} • {quiz.completedDate}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`text-lg font-bold ${quiz.score >= 90 ? 'text-green-600' : quiz.score >= 75 ? 'text-blue-600' : 'text-yellow-600'}`}>
+                                                {Math.round(quiz.score)}%
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`text-lg font-bold ${quiz.score >= 90 ? 'text-green-600' : quiz.score >= 75 ? 'text-blue-600' : 'text-yellow-600'}`}>
-                                            {quiz.score}%
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
