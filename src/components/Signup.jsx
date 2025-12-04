@@ -10,7 +10,7 @@ const Signup = () => {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('student');
     const [error, setError] = useState('');
-    
+
     // Auto-dismiss error after 5 seconds or on any click within the page
     useEffect(() => {
         if (!error) return;
@@ -123,7 +123,7 @@ const Signup = () => {
                         >
                             <option value="student">Student</option>
                             <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
+
                         </select>
                     </div>
                 </div>

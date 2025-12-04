@@ -8,7 +8,7 @@ import StudentDashboard from './components/student/StudentDashboard';
 import TeacherDashboard from './components/teacher/TeacherDashboard';
 import StudentsPage from './components/teacher/StudentsPage';
 import GradebookPage from './components/teacher/GradebookPage';
-import AdminDashboard from './components/admin/AdminDashboard';
+
 import ProfilePage from './components/ProfilePage';
 import StudentCourses from './components/student/StudentCourses';
 import TeacherCourses from './components/teacher/TeacherCourses';
@@ -31,7 +31,7 @@ function RoleRoute({ role, children }) {
   const { currentUser, userRole } = useAuth();
   if (!currentUser) return <Navigate to="/login" replace />;
   if (userRole !== role) {
-    const redirect = userRole === 'teacher' ? '/teacher' : userRole === 'admin' ? '/admin' : '/student';
+    const redirect = userRole === 'teacher' ? '/teacher' : '/student';
     return <Navigate to={redirect} replace />;
   }
   return children;
@@ -40,7 +40,7 @@ function RoleRoute({ role, children }) {
 function PublicRoute({ children }) {
   const { currentUser, userRole } = useAuth();
   if (currentUser) {
-    const redirect = userRole === 'teacher' ? '/teacher' : userRole === 'admin' ? '/admin' : '/student';
+    const redirect = userRole === 'teacher' ? '/teacher' : '/student';
     return <Navigate to={redirect} replace />;
   }
   return children;
@@ -76,11 +76,7 @@ function App() {
               <GradebookPage />
             </RoleRoute>
           } />
-          <Route path="/admin" element={
-            <RoleRoute role="admin">
-              <AdminDashboard />
-            </RoleRoute>
-          } />
+
           {/* Keep existing student feature routes under /student */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/dashboard" element={<Navigate to="/student" replace />} />

@@ -16,7 +16,7 @@ export function useAuth() {
 
 // Helper function to determine role from email
 function getRoleFromEmail(email) {
-    if (email.includes('admin')) return 'admin';
+
     if (email.includes('teacher')) return 'teacher';
     return 'student';
 }

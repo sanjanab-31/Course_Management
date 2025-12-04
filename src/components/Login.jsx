@@ -8,7 +8,7 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    
+
     // Auto-dismiss error after 5 seconds or on any click within the page
     useEffect(() => {
         if (!error) return;
@@ -40,11 +40,9 @@ const Login = () => {
             setLoading(true);
             const cred = await login(email, password);
             const emailAddr = cred?.user?.email || '';
-            const inferredRole = emailAddr.includes('admin')
-                ? 'admin'
-                : emailAddr.includes('teacher')
-                    ? 'teacher'
-                    : 'student';
+            const inferredRole = emailAddr.includes('teacher')
+                ? 'teacher'
+                : 'student';
 
             if (inferredRole !== activeTab) {
                 // Wrong portal selected for the user's role
@@ -54,12 +52,12 @@ const Login = () => {
                     const { signOut } = await import('firebase/auth');
                     const { auth } = await import('../config/firebase');
                     await signOut(auth);
-                } catch {}
+                } catch { }
                 return;
             }
 
             // Redirect by role to dedicated portals
-            const redirectPath = inferredRole === 'student' ? '/student' : inferredRole === 'teacher' ? '/teacher' : '/admin';
+            const redirectPath = inferredRole === 'student' ? '/student' : '/teacher';
             navigate(redirectPath, { replace: true });
         } catch (err) {
             console.error(err);
@@ -72,7 +70,6 @@ const Login = () => {
     const tabs = [
         { id: 'student', label: 'Student', icon: User },
         { id: 'teacher', label: 'Teacher', icon: BookOpen },
-        { id: 'admin', label: 'Admin', icon: Shield },
     ];
 
     async function handleSetupDemo() {
