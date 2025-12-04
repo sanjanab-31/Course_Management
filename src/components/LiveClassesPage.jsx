@@ -15,25 +15,12 @@ import { User, Clock, Users, Video, Loader2, BookOpen, AlertCircle } from 'lucid
 const LiveClassesPage = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('today');
-    const [currentDate, setCurrentDate] = useState('');
     const [allClasses, setAllClasses] = useState([]);
     const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Update date in real-time
-    useEffect(() => {
-        const updateDate = () => {
-            const now = new Date();
-            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-            setCurrentDate(now.toLocaleDateString('en-US', options));
-        };
 
-        updateDate();
-        const interval = setInterval(updateDate, 60000); // Update every minute
-
-        return () => clearInterval(interval);
-    }, []);
 
     // Fetch enrolled courses
     useEffect(() => {
@@ -149,14 +136,9 @@ const LiveClassesPage = () => {
         <DashboardLayout>
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Live Classes</h1>
-                        <p className="text-sm text-gray-600 mt-1">Join live sessions and access recorded lectures</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-sm text-gray-600">{currentDate}</p>
-                    </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Live Classes</h1>
+                    <p className="text-sm text-gray-600 mt-1">Join live sessions and access recorded lectures</p>
                 </div>
 
                 {/* Loading State */}
@@ -202,8 +184,8 @@ const LiveClassesPage = () => {
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`pb-3 px-1 text-sm font-medium transition-colors relative ${activeTab === tab.id
-                                                ? 'text-gray-900'
-                                                : 'text-gray-500 hover:text-gray-700'
+                                            ? 'text-gray-900'
+                                            : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                     >
                                         {tab.label}

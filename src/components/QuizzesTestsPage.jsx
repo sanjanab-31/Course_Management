@@ -152,12 +152,7 @@ const QuizzesTestsPage = () => {
         }
     };
 
-    const getCurrentDate = () => {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        const now = new Date();
-        return `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
-    };
+
 
     if (loading) {
         return (
@@ -177,17 +172,14 @@ const QuizzesTestsPage = () => {
                     <h1 className="text-2xl font-bold text-gray-900">Quizzes & Tests</h1>
                     <p className="text-sm text-gray-600 mt-1">Test your knowledge and track your progress</p>
                 </div>
-                <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-3">{getCurrentDate()}</p>
-                    <div className="flex items-center gap-6">
-                        <div className="text-center">
-                            <p className="text-3xl font-bold text-gray-900">{availableQuizzes.length}</p>
-                            <p className="text-sm text-gray-600">Available</p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-3xl font-bold text-gray-900">{avgScore}%</p>
-                            <p className="text-sm text-gray-600">Avg Score</p>
-                        </div>
+                <div className="flex items-center gap-6">
+                    <div className="text-center">
+                        <p className="text-3xl font-bold text-gray-900">{availableQuizzes.length}</p>
+                        <p className="text-sm text-gray-600">Available</p>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-3xl font-bold text-gray-900">{avgScore}%</p>
+                        <p className="text-sm text-gray-600">Avg Score</p>
                     </div>
                 </div>
             </div>

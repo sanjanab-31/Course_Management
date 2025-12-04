@@ -8,24 +8,11 @@ import { subscribeToCourseAssignments, subscribeToAssignmentSubmissions, submitA
 const AssignmentsPage = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('pending');
-    const [currentDate, setCurrentDate] = useState('');
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(null);
 
-    // Update date in real-time
-    useEffect(() => {
-        const updateDate = () => {
-            const now = new Date();
-            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-            setCurrentDate(now.toLocaleDateString('en-US', options));
-        };
 
-        updateDate();
-        const interval = setInterval(updateDate, 60000); // Update every minute
-
-        return () => clearInterval(interval);
-    }, []);
 
     // Fetch assignments and submissions
     useEffect(() => {
@@ -180,18 +167,13 @@ const AssignmentsPage = () => {
                         <p className="text-sm text-gray-600 mt-1">Track and submit your assignments</p>
                     </div>
                     <div className="flex items-center space-x-8">
-                        <div className="text-right">
-                            <p className="text-sm text-gray-500">{currentDate}</p>
+                        <div className="text-center">
+                            <p className="text-3xl font-bold text-gray-900">{pendingCount}</p>
+                            <p className="text-sm text-gray-600">Pending</p>
                         </div>
-                        <div className="flex items-center space-x-8">
-                            <div className="text-center">
-                                <p className="text-3xl font-bold text-gray-900">{pendingCount}</p>
-                                <p className="text-sm text-gray-600">Pending</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-3xl font-bold text-gray-900">{avgScore}%</p>
-                                <p className="text-sm text-gray-600">Avg Score</p>
-                            </div>
+                        <div className="text-center">
+                            <p className="text-3xl font-bold text-gray-900">{avgScore}%</p>
+                            <p className="text-sm text-gray-600">Avg Score</p>
                         </div>
                     </div>
                 </div>
