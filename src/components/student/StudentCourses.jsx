@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
-import { useAuth } from '../context/AuthContext';
+import DashboardLayout from '../DashboardLayout';
+import { useAuth } from '../../context/AuthContext';
 import {
     getAllCourses,
     getAllStudentEnrollments,
     enrollInCourse,
     subscribeToCoursesUpdates,
     subscribeToStudentEnrollments
-} from '../services/courseService';
-import { checkCourseCompletion } from '../services/certificateService';
-import CertificateGenerator from './CertificateGenerator';
+} from '../../services/courseService';
+import { checkCourseCompletion } from '../../services/certificateService';
+import CertificateGenerator from '../CertificateGenerator';
 import {
     BookOpen,
     Clock,
