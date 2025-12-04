@@ -10,7 +10,7 @@ const QuizzesTestsPage = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('available');
     const [quizzes, setQuizzes] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
     const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
     const [enrolledCourses, setEnrolledCourses] = useState([]);
@@ -27,7 +27,7 @@ const QuizzesTestsPage = () => {
 
         const fetchEnrollmentsAndSetupListeners = async () => {
             try {
-                setLoading(true);
+                setLoading(false);
                 // 1. Get enrolled courses
                 const enrollments = await getAllStudentEnrollments(currentUser.uid);
                 const courses = enrollments.map(e => ({
