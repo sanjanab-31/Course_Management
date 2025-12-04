@@ -87,7 +87,7 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
                         <p className="text-gray-600 mb-6">This quiz doesn't have questions configured yet.</p>
                         <button
                             onClick={onClose}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold"
+                            className="bg-[#0277bd] hover:bg-[#0277bd] text-white px-6 py-2 rounded-lg font-semibold"
                         >
                             Close
                         </button>

@@ -107,8 +107,7 @@ const StudyMaterialsPage = () => {
             <div className="space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Study Materials</h1>
-                    <p className="text-gray-600">Access learning resources for your enrolled courses</p>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Access learning resources for your enrolled courses</h1>
                 </div>
 
                 {/* Loading State */}

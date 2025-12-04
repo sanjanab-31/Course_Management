@@ -137,8 +137,7 @@ const LiveClassesPage = () => {
             <div className="space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Live Classes</h1>
-                    <p className="text-sm text-gray-600 mt-1">Join live sessions and access recorded lectures</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Join live sessions and access recorded lectures</h1>
                 </div>
 
                 {/* Loading State */}

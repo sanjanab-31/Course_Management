@@ -163,8 +163,7 @@ const AssignmentsPage = () => {
                 {/* Header */}
                 <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">My Assignments</h1>
-                        <p className="text-sm text-gray-600 mt-1">Track and submit your assignments</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Track and submit your assignments</h1>
                     </div>
                     <div className="flex items-center space-x-8">
                         <div className="text-center">

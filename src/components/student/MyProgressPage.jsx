@@ -188,8 +188,7 @@ const MyProgressPage = () => {
         <DashboardLayout>
             <div className="space-y-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">My Progress</h1>
-                    <p className="text-sm text-gray-600 mt-1">Track your academic performance</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Track your academic performance</h1>
                 </div>
 
                 {/* Stats Grid */}

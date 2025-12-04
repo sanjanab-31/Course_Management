@@ -218,8 +218,8 @@ const MyCoursesPage = () => {
                 <div className="space-y-6">
                     {/* Header Section */}
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Courses</h1>
-                        <p className="text-gray-600">Continue your learning journey</p>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Continue your learning journey</h1>
+                        {/* <p className="text-gray-600">Continue your learning journey</p> */}
                     </div>
 
                     {/* Tabs and Search/Filter Section */}
@@ -229,8 +229,8 @@ const MyCoursesPage = () => {
                             <button
                                 onClick={() => setActiveTab('available')}
                                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'available'
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-[#0277bd] shadow-sm border-1 '
+                                    : 'text-gray-600 hover:text-[#0277bd]'
                                     }`}
                             >
                                 Available Courses ({availableCount})
@@ -238,8 +238,8 @@ const MyCoursesPage = () => {
                             <button
                                 onClick={() => setActiveTab('enrolled')}
                                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'enrolled'
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-[#0277bd] shadow-sm border'
+                                    : 'text-gray-600 hover:text-[#0277bd]'
                                     }`}
                             >
                                 Enrolled Courses ({enrolledCount})
@@ -247,8 +247,8 @@ const MyCoursesPage = () => {
                             <button
                                 onClick={() => setActiveTab('completed')}
                                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'completed'
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-[#0277bd] shadow-sm border'
+                                    : 'text-gray-600 hover:text-[#0277bd]'
                                     }`}
                             >
                                 Completed ({completedCount})
@@ -265,7 +265,7 @@ const MyCoursesPage = () => {
                                     placeholder="Search courses..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm w-64"
+                                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-0.8 focus:ring-[#0277bd] focus:border-[#0277bd] text-sm w-64"
                                 />
                             </div>
 
@@ -273,7 +273,7 @@ const MyCoursesPage = () => {
                             <div className="relative">
                                 <button
                                     onClick={() => setShowFilter(!showFilter)}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2 text-sm font-medium text-gray-700"
+                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-0.8 focus:ring-[#0277bd] focus:border-[#0277bd]"
                                 >
                                     <Filter className="w-4 h-4" />
                                     <span>Filter</span>

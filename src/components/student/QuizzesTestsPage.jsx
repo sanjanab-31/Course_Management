@@ -169,8 +169,7 @@ const QuizzesTestsPage = () => {
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Quizzes & Tests</h1>
-                    <p className="text-sm text-gray-600 mt-1">Test your knowledge and track your progress</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Test your knowledge and track your progress</h1>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="text-center">

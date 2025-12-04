@@ -89,7 +89,7 @@ const StudentDashboard = () => {
     return (
         <DashboardLayout>
             {/* Welcome Banner */}
-            <div className="bg-blue-600 text-white rounded-lg p-6 mb-6">
+            <div className="bg-[#0277bd] text-white rounded-lg p-6 mb-6">
                 <div className="flex justify-between items-start">
                     <div>
                         <h3 className="text-2xl font-semibold mb-2">Welcome back, {studentData.name}!</h3>
