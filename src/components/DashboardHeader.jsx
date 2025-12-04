@@ -25,14 +25,20 @@ const DashboardHeader = () => {
         const titles = {
             '/': 'Dashboard',
             '/dashboard': 'Dashboard',
+            '/student': 'Dashboard',
+            '/teacher': 'Dashboard',
             '/my-courses': 'My Courses',
+            '/student/courses': 'My Courses',
+            '/teacher/courses': 'My Courses',
             '/live-classes': 'Live Classes',
             '/assignments': 'Assignments',
             '/quizzes-tests': 'Quizzes & Tests',
             '/study-materials': 'Study Materials',
             '/my-progress': 'My Progress',
             '/settings': 'Settings',
-            '/profile': 'Profile'
+            '/profile': 'Profile',
+            '/students': 'Students',
+            '/gradebook': 'Gradebook'
         };
         return titles[path] || 'Dashboard';
     };

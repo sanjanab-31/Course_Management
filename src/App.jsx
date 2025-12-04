@@ -4,11 +4,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import ForgotPassword from './components/ForgotPassword';
-import StudentDashboard from './components/StudentDashboard';
-import TeacherDashboard from './components/TeacherDashboard';
-import AdminDashboard from './components/AdminDashboard';
+import StudentDashboard from './components/student/StudentDashboard';
+import TeacherDashboard from './components/teacher/TeacherDashboard';
+import StudentsPage from './components/teacher/StudentsPage';
+import GradebookPage from './components/teacher/GradebookPage';
+import AdminDashboard from './components/admin/AdminDashboard';
 import ProfilePage from './components/ProfilePage';
-import MyCoursesPage from './components/MyCoursesPage';
+import StudentCourses from './components/student/StudentCourses';
+import TeacherCourses from './components/teacher/TeacherCourses';
 import LiveClassesPage from './components/LiveClassesPage';
 import AssignmentsPage from './components/AssignmentsPage';
 import QuizzesTestsPage from './components/QuizzesTestsPage';
@@ -61,6 +64,16 @@ function App() {
               <TeacherDashboard />
             </RoleRoute>
           } />
+          <Route path="/students" element={
+            <RoleRoute role="teacher">
+              <StudentsPage />
+            </RoleRoute>
+          } />
+          <Route path="/gradebook" element={
+            <RoleRoute role="teacher">
+              <GradebookPage />
+            </RoleRoute>
+          } />
           <Route path="/admin" element={
             <RoleRoute role="admin">
               <AdminDashboard />
@@ -74,11 +87,18 @@ function App() {
               <ProfilePage />
             </ProtectedRoute>
           } />
-          <Route path="/my-courses" element={
-            <ProtectedRoute>
-              <MyCoursesPage />
-            </ProtectedRoute>
+          <Route path="/student/courses" element={
+            <RoleRoute role="student">
+              <StudentCourses />
+            </RoleRoute>
           } />
+          <Route path="/teacher/courses" element={
+            <RoleRoute role="teacher">
+              <TeacherCourses />
+            </RoleRoute>
+          } />
+          {/* Redirect legacy /my-courses if needed, or just remove it if sidebar is updated */}
+          <Route path="/my-courses" element={<Navigate to="/student/courses" replace />} />
           <Route path="/live-classes" element={
             <ProtectedRoute>
               <LiveClassesPage />
