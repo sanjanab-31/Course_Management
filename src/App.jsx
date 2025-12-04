@@ -4,7 +4,15 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import ForgotPassword from './components/ForgotPassword';
-import Dashboard from './components/Dashboard';
+import StudentDashboard from './components/StudentDashboard';
+import ProfilePage from './components/ProfilePage';
+import MyCoursesPage from './components/MyCoursesPage';
+import LiveClassesPage from './components/LiveClassesPage';
+import AssignmentsPage from './components/AssignmentsPage';
+import QuizzesTestsPage from './components/QuizzesTestsPage';
+import StudyMaterialsPage from './components/StudyMaterialsPage';
+import MyProgressPage from './components/MyProgressPage';
+import SettingsPage from './components/SettingsPage';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -20,9 +28,56 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {/* Student Dashboard Routes */}
           <Route path="/" element={
             <ProtectedRoute>
-              <Dashboard />
+              <StudentDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-courses" element={
+            <ProtectedRoute>
+              <MyCoursesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/live-classes" element={
+            <ProtectedRoute>
+              <LiveClassesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/assignments" element={
+            <ProtectedRoute>
+              <AssignmentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/quizzes-tests" element={
+            <ProtectedRoute>
+              <QuizzesTestsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/study-materials" element={
+            <ProtectedRoute>
+              <StudyMaterialsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-progress" element={
+            <ProtectedRoute>
+              <MyProgressPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           } />
         </Routes>
