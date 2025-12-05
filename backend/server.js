@@ -135,17 +135,8 @@ const Quiz = mongoose.model('Quiz', quizSchema);
 const QuizAttempt = mongoose.model('QuizAttempt', quizAttemptSchema);
 const LiveClass = mongoose.model('LiveClass', liveClassSchema);
 const Material = mongoose.model('Material', materialSchema);
-
-// ==================== DATABASE CONNECTION ====================
-
-mongoose.connect(MONGODB_URI)
-    .then(() => {
-        console.log('✅ Connected to MongoDB');
-    })
-    .catch((error) => {
-        console.error('❌ MongoDB connection error:', error.message);
-        console.error('Please make sure MongoDB is running or check your MONGODB_URI in .env file');
-    });
+import { connectDB } from "./config/db.js";
+connectDB(MONGODB_URI);
 
 // ==================== COURSES API ====================
 
@@ -154,13 +145,20 @@ app.get('/api/courses', async (req, res) => {
     try {
         // Check MongoDB connection
         if (mongoose.connection.readyState !== 1) {
-            return res.status(503).json({ 
-                error: 'Database not connected', 
-                details: 'MongoDB connection is not established. Please check if MongoDB is running.' 
+            return res.status(503).json({
+                error: 'Database not connected',
+                details: 'MongoDB connection is not established. Please check if MongoDB is running.'
             });
         }
         const courses = await Course.find().sort({ createdAt: -1 });
-        res.json(courses);
+
+        // Transform courses to include 'id' field for frontend compatibility
+        const transformedCourses = courses.map(course => ({
+            ...course.toObject(),
+            id: course._id.toString()
+        }));
+
+        res.json(transformedCourses);
     } catch (error) {
         console.error('Error fetching courses:', error);
         res.status(500).json({ error: 'Failed to fetch courses', details: error.message });
@@ -174,7 +172,10 @@ app.get('/api/courses/:id', async (req, res) => {
         if (!course) {
             return res.status(404).json({ error: 'Course not found' });
         }
-        res.json(course);
+        res.json({
+            ...course.toObject(),
+            id: course._id.toString()
+        });
     } catch (error) {
         console.error('Error fetching course:', error);
         res.status(500).json({ error: 'Failed to fetch course' });
@@ -186,9 +187,9 @@ app.post('/api/courses', async (req, res) => {
     try {
         // Check MongoDB connection
         if (mongoose.connection.readyState !== 1) {
-            return res.status(503).json({ 
-                error: 'Database not connected', 
-                details: 'MongoDB connection is not established. Please check if MongoDB is running.' 
+            return res.status(503).json({
+                error: 'Database not connected',
+                details: 'MongoDB connection is not established. Please check if MongoDB is running.'
             });
         }
         const { title, description, instructor, instructorId, category, level, duration, image, totalLectures } = req.body;
@@ -255,7 +256,7 @@ app.get('/api/enrollments/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const enrollments = await Enrollment.find({ userId }).populate('courseId');
-        
+
         const enrollmentData = enrollments.map(enrollment => ({
             courseId: enrollment.courseId._id.toString(),
             courseData: enrollment.courseId,
@@ -281,10 +282,38 @@ app.post('/api/enrollments', async (req, res) => {
     try {
         const { courseId, userId } = req.body;
 
+        // Validate required fields
+        if (!courseId || !userId) {
+            return res.status(400).json({
+                error: 'Missing required fields',
+                details: 'Both courseId and userId are required'
+            });
+        }
+
+        // Validate courseId is a valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(courseId)) {
+            return res.status(400).json({
+                error: 'Invalid course ID',
+                details: `The provided courseId "${courseId}" is not a valid MongoDB ObjectId`
+            });
+        }
+
+        // Check if course exists
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({
+                error: 'Course not found',
+                details: `No course found with ID: ${courseId}`
+            });
+        }
+
         // Check if already enrolled
         const existingEnrollment = await Enrollment.findOne({ courseId, userId });
         if (existingEnrollment) {
-            return res.status(400).json({ error: 'Already enrolled in this course' });
+            return res.status(400).json({
+                error: 'Already enrolled in this course',
+                details: `User ${userId} is already enrolled in course ${courseId}`
+            });
         }
 
         const enrollmentData = {
@@ -303,10 +332,14 @@ app.post('/api/enrollments', async (req, res) => {
         // Increment student count
         await Course.findByIdAndUpdate(courseId, { $inc: { students: 1 } });
 
+        console.log(`✅ Student ${userId} enrolled in course ${courseId}`);
         res.status(201).json({ courseId, ...enrollmentData });
     } catch (error) {
         console.error('Error enrolling student:', error);
-        res.status(500).json({ error: 'Failed to enroll student' });
+        res.status(500).json({
+            error: 'Failed to enroll student',
+            details: error.message
+        });
     }
 });
 
@@ -638,10 +671,10 @@ app.get('/api/courses/:courseId/gradebook', async (req, res) => {
 
         // Get all enrollments
         const enrollments = await Enrollment.find({ courseId });
-        
+
         // Get all assignments
         const assignments = await Assignment.find({ courseId });
-        
+
         // Get all quizzes
         const quizzes = await Quiz.find({ courseId });
 

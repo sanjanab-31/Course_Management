@@ -92,17 +92,34 @@ const MyCoursesPage = () => {
             return;
         }
 
+        // Validate that we have both required fields
+        if (!courseId) {
+            console.error('Enrollment failed: courseId is missing', { courseId });
+            showNotification('Invalid course - please try again', 'error');
+            return;
+        }
+
+        if (!currentUser.uid) {
+            console.error('Enrollment failed: user ID is missing', { currentUser });
+            showNotification('User authentication error - please log in again', 'error');
+            return;
+        }
+
+        console.log('Attempting to enroll:', { courseId, userId: currentUser.uid });
+
         try {
             setEnrolling(courseId);
             await enrollmentsApi.enroll(courseId, currentUser.uid);
             showNotification('Successfully enrolled in course!', 'success');
-            
+
             // Refresh enrollments to show updated data
             const enrollmentsData = await enrollmentsApi.getByUserId(currentUser.uid);
             setEnrollments(enrollmentsData);
         } catch (error) {
             console.error('Error enrolling:', error);
-            showNotification('Failed to enroll in course', 'error');
+            // Show more detailed error message if available
+            const errorMessage = error.message || 'Failed to enroll in course';
+            showNotification(errorMessage, 'error');
         } finally {
             setEnrolling(null);
         }
