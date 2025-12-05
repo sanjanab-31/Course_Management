@@ -76,6 +76,9 @@ export const assignmentsApi = {
             method: 'PUT',
             body: JSON.stringify(gradeData),
         }),
+    getSubmissions: (courseId, assignmentId) =>
+        apiCall(`/courses/${courseId}/assignments/${assignmentId}/submissions`),
+    getMySubmissions: (studentId) => apiCall(`/student/${studentId}/submissions`),
 };
 
 // ==================== QUIZZES API ====================

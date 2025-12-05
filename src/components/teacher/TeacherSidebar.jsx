@@ -9,7 +9,9 @@ import {
     Users,
     BarChart2,
     Settings,
-    LogOut
+    LogOut,
+    HelpCircle,
+    Book
 } from 'lucide-react';
 
 const TeacherSidebar = () => {
@@ -35,6 +37,8 @@ const TeacherSidebar = () => {
         { id: 'my-courses', label: 'My Courses', icon: BookOpen, path: '/teacher/courses' },
         { id: 'students', label: 'Students', icon: Users, path: '/students' },
         { id: 'assignments', label: 'Assignments', icon: FileText, path: '/teacher/assignments' },
+        { id: 'quizzes', label: 'Quizzes', icon: HelpCircle, path: '/teacher/quizzes' },
+        { id: 'study-materials', label: 'Study Materials', icon: Book, path: '/teacher/study-materials' },
         { id: 'gradebook', label: 'Gradebook', icon: BarChart2, path: '/gradebook' },
         { id: 'live-classes', label: 'Live Classes', icon: Video, path: '/teacher/live-classes' },
         { id: 'settings', label: 'Settings', icon: Settings, path: '/teacher/settings' },

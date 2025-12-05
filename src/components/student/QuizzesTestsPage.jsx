@@ -1,144 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import StudentLayout from './StudentLayout';
-import { Clock, Trophy, Circle, Target, Play, CheckCircle, TrendingUp, Award, Users, Loader2 } from 'lucide-react';
+import { Clock, Trophy, Circle, Target, Play, CheckCircle, TrendingUp, Award, Users, Loader2, AlertCircle } from 'lucide-react';
 import QuizTakingModal from './QuizTakingModal';
 import { useAuth } from '../../context/AuthContext';
-import { getAllStudentEnrollments } from '../../services/courseService';
-import { subscribeToCourseQuizzes, subscribeToQuizAttempts, submitQuizAttempt } from '../../services/quizService';
+import { enrollmentsApi, quizzesApi } from '../../services/api';
 
 const QuizzesTestsPage = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('available');
     const [quizzes, setQuizzes] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
     const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
-    const [enrolledCourses, setEnrolledCourses] = useState([]);
+    const [error, setError] = useState(null);
 
-    // Fetch enrolled courses and set up listeners
     useEffect(() => {
-        if (!currentUser) {
+        fetchQuizzes();
+    }, [currentUser]);
+
+    const fetchQuizzes = async () => {
+        if (!currentUser?.uid) {
             setLoading(false);
             return;
         }
 
-        let quizUnsubscribes = [];
-        let attemptUnsubscribes = [];
+        try {
+            setLoading(true);
+            // 1. Get enrolled courses
+            const enrollments = await enrollmentsApi.getByUserId(currentUser.uid);
 
-        const fetchEnrollmentsAndSetupListeners = async () => {
-            try {
+            if (enrollments.length === 0) {
+                setQuizzes([]);
                 setLoading(false);
-                // 1. Get enrolled courses
-                const enrollments = await getAllStudentEnrollments(currentUser.uid);
-                const courses = enrollments.map(e => ({
-                    id: e.courseId,
-                    name: e.courseData?.title || e.courseData?.name,
-                    professor: e.courseData?.instructor || e.courseData?.professor,
-                    ...e.courseData
-                }));
-                setEnrolledCourses(courses);
+                return;
+            }
 
-                // 2. Fetch quizzes immediately for all enrolled courses
-                const allQuizzes = [];
-                for (const course of courses) {
+            // 2. Fetch quizzes for all enrolled courses
+            const allQuizzes = [];
+            await Promise.all(
+                enrollments.map(async (enrollment) => {
                     try {
-                        const courseQuizzes = await quizzesApi.getByCourse(course.id);
+                        const courseQuizzes = await quizzesApi.getByCourse(enrollment.courseId);
+
                         courseQuizzes.forEach(quiz => {
+                            // Check if student has attempted this quiz (logic would need backend support for attempts)
+                            // For now, we'll assume available unless we have attempt data
+                            // In a real app, we'd fetch attempts here too
+
                             allQuizzes.push({
                                 ...quiz,
-                                courseId: course.id,
-                                courseName: course.name || course.title,
-                                professor: course.professor || course.instructor,
-                                status: 'available',
-                                score: 0,
-                                attempts: quiz.attempts || 3,
+                                id: quiz._id || quiz.id,
+                                courseId: enrollment.courseId,
+                                courseName: enrollment.courseData?.title || 'Unknown Course',
+                                professor: enrollment.courseData?.instructor || 'Unknown',
+                                status: quiz.status || 'available', // Default
+                                score: 0, // Placeholder until attempts are fetched
+                                attempts: quiz.attempts || 0,
                                 questionsCount: quiz.questions ? quiz.questions.length : (quiz.totalQuestions || 0),
-                                questionsData: quiz.questions || [],
                                 duration: quiz.timeLimit || 30,
                                 points: quiz.passingScore || 100,
-                                difficulty: quiz.difficulty || 'medium',
-                                dueDate: quiz.dueDate || 'No due date'
+                                difficulty: 'medium', // Default
+                                dueDate: quiz.dueDate ? new Date(quiz.dueDate).toLocaleDateString() : 'No due date'
                             });
                         });
-                    } catch (error) {
-                        console.error(`Error fetching quizzes for course ${course.id}:`, error);
+                    } catch (err) {
+                        console.error(`Error fetching quizzes for course ${enrollment.courseId}:`, err);
                     }
-                }
-                setQuizzes(allQuizzes);
+                })
+            );
 
-                // 3. For each course, subscribe to quizzes for real-time updates
-                courses.forEach(course => {
-                    const unsubQuiz = subscribeToCourseQuizzes(course.id, (courseQuizzes) => {
-                        // Update quizzes state
-                        setQuizzes(prevQuizzes => {
-                            // Remove existing quizzes for this course to avoid duplicates/stale data
-                            const otherQuizzes = prevQuizzes.filter(q => q.courseId !== course.id);
+            setQuizzes(allQuizzes);
+            setError(null);
+        } catch (err) {
+            console.error("Error fetching quizzes:", err);
+            setError("Failed to load quizzes");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-                            // Process new quizzes
-                            const newQuizzes = courseQuizzes.map(quiz => ({
-                                ...quiz,
-                                courseId: course.id,
-                                courseName: course.name || course.title,
-                                professor: course.professor || course.instructor,
-                                status: 'available', // Default, will be updated by attempts listener
-                                score: 0,
-                                attempts: quiz.attempts || 3, // Default max attempts
-                                questionsCount: quiz.questions ? quiz.questions.length : (quiz.totalQuestions || 0),
-                                questionsData: quiz.questions || [],
-                                duration: quiz.timeLimit || quiz.duration || 30,
-                                points: quiz.passingScore || 100,
-                                difficulty: quiz.difficulty || 'medium',
-                                dueDate: quiz.dueDate || 'No due date'
-                            }));
-
-                            // Setup attempt listeners for these quizzes
-                            newQuizzes.forEach(quiz => {
-                                const unsubAttempt = subscribeToQuizAttempts(course.id, quiz.id, currentUser.uid, (attempts) => {
-                                    setQuizzes(currentQuizzes => {
-                                        return currentQuizzes.map(q => {
-                                            if (q.id === quiz.id) {
-                                                const lastAttempt = attempts.length > 0 ? attempts[0] : null;
-                                                const bestScore = attempts.reduce((max, attempt) => Math.max(max, attempt.score || 0), 0);
-
-                                                return {
-                                                    ...q,
-                                                    status: attempts.length > 0 ? 'completed' : 'available',
-                                                    score: lastAttempt ? lastAttempt.score : 0,
-                                                    bestScore: bestScore,
-                                                    completedDate: lastAttempt ? (lastAttempt.submittedAt ? new Date(lastAttempt.submittedAt).toLocaleDateString() : new Date().toLocaleDateString()) : null,
-                                                    attemptsUsed: attempts.length
-                                                };
-                                            }
-                                            return q;
-                                        });
-                                    });
-                                });
-                                attemptUnsubscribes.push(unsubAttempt);
-                            });
-
-                            return [...otherQuizzes, ...newQuizzes];
-                        });
-                    });
-                    quizUnsubscribes.push(unsubQuiz);
-                });
-
-                setLoading(false);
-            } catch (error) {
-                console.error("Error setting up quiz listeners:", error);
-                setLoading(false);
-            }
-        };
-
-        fetchEnrollmentsAndSetupListeners();
-
-        return () => {
-            quizUnsubscribes.forEach(unsub => unsub());
-            attemptUnsubscribes.forEach(unsub => unsub());
-        };
-    }, [currentUser]);
-
-    const availableQuizzes = quizzes.filter(q => q.status === 'available');
-    const completedQuizzes = quizzes.filter(q => q.status === 'completed');
+    const availableQuizzes = quizzes.filter(q => q.status === 'available' || q.status === 'active');
+    const completedQuizzes = quizzes.filter(q => q.status === 'completed'); // This logic needs backend 'attempts' integration to be accurate
 
     const avgScore = completedQuizzes.length > 0
         ? Math.round(completedQuizzes.reduce((acc, q) => acc + q.score, 0) / completedQuizzes.length)
@@ -154,46 +96,42 @@ const QuizzesTestsPage = () => {
             if (!selectedQuiz) return;
 
             const attemptData = {
-                score: (score / totalScore) * 100, // Store as percentage
-                rawScore: score,
-                totalScore: totalScore,
-                answers: [] // You might want to pass answers here if available
+                userId: currentUser.uid,
+                score: (score / totalScore) * 100,
+                timeTaken: 0, // You might want to track actual time
+                answers: [] // Pass answers if needed
             };
 
-            await submitQuizAttempt(selectedQuiz.courseId, quizId, currentUser.uid, attemptData);
+            await quizzesApi.submitAttempt(selectedQuiz.courseId, quizId, attemptData);
 
             setIsQuizModalOpen(false);
             setSelectedQuiz(null);
+
+            // Refresh quizzes to update status/score
+            fetchQuizzes();
             setActiveTab('completed');
         } catch (error) {
             console.error("Error submitting quiz:", error);
-            // Handle error (show notification)
+            alert("Failed to submit quiz result");
         }
     };
 
     const getDifficultyColor = (difficulty) => {
         switch (difficulty?.toLowerCase()) {
-            case 'easy':
-                return 'bg-green-100 text-green-700';
-            case 'medium':
-                return 'bg-yellow-100 text-yellow-700';
-            case 'hard':
-                return 'bg-red-100 text-red-700';
-            default:
-                return 'bg-gray-100 text-gray-700';
+            case 'easy': return 'bg-green-100 text-green-700';
+            case 'medium': return 'bg-yellow-100 text-yellow-700';
+            case 'hard': return 'bg-red-100 text-red-700';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
-
-
-
-    // Loading state removed - always show content
 
     return (
         <StudentLayout>
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Test your knowledge and track your progress</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Quizzes & Tests</h1>
+                    <p className="text-gray-600 mt-1">Test your knowledge and track your progress</p>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="text-center">
@@ -207,226 +145,106 @@ const QuizzesTestsPage = () => {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="border-b border-gray-200 mb-6">
-                <div className="flex gap-8">
-                    <button
-                        onClick={() => setActiveTab('available')}
-                        className={`pb-3 px-1 font-medium text-sm transition-colors relative ${activeTab === 'available'
-                            ? 'text-gray-900'
-                            : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                    >
-                        Available ({availableQuizzes.length})
-                        {activeTab === 'available' && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('completed')}
-                        className={`pb-3 px-1 font-medium text-sm transition-colors relative ${activeTab === 'completed'
-                            ? 'text-gray-900'
-                            : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                    >
-                        Completed ({completedQuizzes.length})
-                        {activeTab === 'completed' && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('analytics')}
-                        className={`pb-3 px-1 font-medium text-sm transition-colors relative ${activeTab === 'analytics'
-                            ? 'text-gray-900'
-                            : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                    >
-                        Performance Analytics
-                        {activeTab === 'analytics' && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                        )}
-                    </button>
-                </div>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === 'available' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {availableQuizzes.length === 0 ? (
-                        <div className="col-span-full text-center py-12 text-gray-500">
-                            No available quizzes found. Enroll in courses to see quizzes here.
-                        </div>
-                    ) : availableQuizzes.map((quiz) => (
-                        <div key={quiz.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                            <div className="flex items-start justify-between mb-3">
-                                <h3 className="text-lg font-bold text-gray-900 flex-1">{quiz.title}</h3>
-                                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getDifficultyColor(quiz.difficulty)}`}>
-                                    {quiz.difficulty}
-                                </span>
-                            </div>
-
-                            <p className="text-sm text-gray-600 mb-1">{quiz.courseName}: <span className="font-medium">{quiz.professor}</span></p>
-                            <p className="text-sm text-gray-600 mb-4">Due: {quiz.dueDate}</p>
-
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-blue-600" />
-                                    <div>
-                                        <p className="text-xs text-gray-600">Duration</p>
-                                        <p className="text-sm font-semibold text-gray-900">{quiz.duration} mins</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Trophy className="w-4 h-4 text-yellow-600" />
-                                    <div>
-                                        <p className="text-xs text-gray-600">Points</p>
-                                        <p className="text-sm font-semibold text-gray-900">{quiz.points} points</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Circle className="w-4 h-4 text-green-600" />
-                                    <div>
-                                        <p className="text-xs text-gray-600">Questions</p>
-                                        <p className="text-sm font-semibold text-gray-900">{quiz.questionsCount} questions</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Target className="w-4 h-4 text-purple-600" />
-                                    <div>
-                                        <p className="text-xs text-gray-600">Attempts</p>
-                                        <p className="text-sm font-semibold text-gray-900">{quiz.attempts} attempts</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => handleStartQuiz(quiz)}
-                                className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
-                            >
-                                <Play className="w-4 h-4" />
-                                Start Quiz
-                            </button>
-                        </div>
-                    ))}
+            {/* Loading State */}
+            {loading && (
+                <div className="flex items-center justify-center py-12 bg-white rounded-lg border border-gray-200">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-600 mr-3" />
+                    <span className="text-gray-600">Loading quizzes...</span>
                 </div>
             )}
 
-            {activeTab === 'completed' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {completedQuizzes.length === 0 ? (
-                        <div className="col-span-full text-center py-12 text-gray-500">
-                            No completed quizzes yet.
-                        </div>
-                    ) : completedQuizzes.map((quiz) => (
-                        <div key={quiz.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                            <div className="flex items-start justify-between mb-3">
-                                <h3 className="text-lg font-bold text-gray-900 flex-1">{quiz.title}</h3>
-                                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    Completed
-                                </span>
-                            </div>
-
-                            <p className="text-sm text-gray-600 mb-1">{quiz.courseName}: <span className="font-medium">{quiz.professor}</span></p>
-                            <p className="text-sm text-gray-600 mb-4">Completed: {quiz.completedDate}</p>
-
-                            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm text-gray-600">Your Score</span>
-                                    <span className="text-2xl font-bold text-green-600">{Math.round(quiz.score)}%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                        className="bg-green-600 h-2 rounded-full transition-all"
-                                        style={{ width: `${quiz.score}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-blue-600" />
-                                    <div>
-                                        <p className="text-xs text-gray-600">Duration</p>
-                                        <p className="text-sm font-semibold text-gray-900">{quiz.duration} mins</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Trophy className="w-4 h-4 text-yellow-600" />
-                                    <div>
-                                        <p className="text-xs text-gray-600">Points</p>
-                                        <p className="text-sm font-semibold text-gray-900">{quiz.points} points</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-semibold transition-colors">
-                                View Results
-                            </button>
-                        </div>
-                    ))}
+            {/* Error State */}
+            {error && !loading && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 mb-6">
+                    {error}
                 </div>
             )}
 
-            {activeTab === 'analytics' && (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <TrendingUp className="w-6 h-6 text-blue-600" />
-                                </div>
-                            </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-1">{avgScore}%</h3>
-                            <p className="text-sm text-gray-600">Average Score</p>
-                        </div>
-
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <Award className="w-6 h-6 text-green-600" />
-                                </div>
-                            </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-1">{completedQuizzes.length}</h3>
-                            <p className="text-sm text-gray-600">Quizzes Completed</p>
-                            <p className="text-xs text-gray-500 mt-1">Total</p>
-                        </div>
-
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                    <Users className="w-6 h-6 text-purple-600" />
-                                </div>
-                            </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-1">--</h3>
-                            <p className="text-sm text-gray-600">Class Ranking</p>
-                            <p className="text-xs text-gray-500 mt-1">Not available yet</p>
+            {!loading && !error && (
+                <>
+                    {/* Tabs */}
+                    <div className="border-b border-gray-200 mb-6">
+                        <div className="flex gap-8">
+                            {['available', 'completed', 'analytics'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`pb-3 px-1 font-medium text-sm transition-colors relative capitalize ${activeTab === tab ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                                        }`}
+                                >
+                                    {tab} {tab !== 'analytics' && `(${tab === 'available' ? availableQuizzes.length : completedQuizzes.length})`}
+                                    {activeTab === tab && (
+                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600"></div>
+                                    )}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Performance</h3>
-                        <div className="space-y-3">
-                            {completedQuizzes.length === 0 ? (
-                                <p className="text-gray-500 text-sm">No quizzes completed yet.</p>
-                            ) : (
-                                completedQuizzes.slice(0, 5).map((quiz) => (
-                                    <div key={quiz.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                                        <div className="flex-1">
-                                            <p className="font-semibold text-gray-900 text-sm">{quiz.title}</p>
-                                            <p className="text-xs text-gray-600">{quiz.courseName} • {quiz.completedDate}</p>
+                    {/* Tab Content */}
+                    {activeTab === 'available' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {availableQuizzes.length === 0 ? (
+                                <div className="col-span-full text-center py-12 bg-white rounded-lg border border-gray-200">
+                                    <Target className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-gray-500">No available quizzes found.</p>
+                                    <p className="text-sm text-gray-400 mt-1">Quizzes created by your teachers will appear here.</p>
+                                </div>
+                            ) : availableQuizzes.map((quiz) => (
+                                <div key={quiz.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <h3 className="text-lg font-bold text-gray-900 flex-1">{quiz.title}</h3>
+                                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getDifficultyColor(quiz.difficulty)}`}>
+                                            {quiz.difficulty}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-sm text-gray-600 mb-1">{quiz.courseName}</p>
+                                    <p className="text-sm text-gray-600 mb-4">Due: {quiz.dueDate}</p>
+
+                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-blue-600" />
+                                            <div>
+                                                <p className="text-xs text-gray-600">Duration</p>
+                                                <p className="text-sm font-semibold text-gray-900">{quiz.duration} mins</p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={`text-lg font-bold ${quiz.score >= 90 ? 'text-green-600' : quiz.score >= 75 ? 'text-blue-600' : 'text-yellow-600'}`}>
-                                                {Math.round(quiz.score)}%
-                                            </p>
+                                        <div className="flex items-center gap-2">
+                                            <Trophy className="w-4 h-4 text-yellow-600" />
+                                            <div>
+                                                <p className="text-xs text-gray-600">Points</p>
+                                                <p className="text-sm font-semibold text-gray-900">{quiz.points}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Circle className="w-4 h-4 text-green-600" />
+                                            <div>
+                                                <p className="text-xs text-gray-600">Questions</p>
+                                                <p className="text-sm font-semibold text-gray-900">{quiz.questionsCount}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                ))
-                            )}
+
+                                    <button
+                                        onClick={() => handleStartQuiz(quiz)}
+                                        className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <Play className="w-4 h-4" />
+                                        Start Quiz
+                                    </button>
+                                </div>
+                            ))}
                         </div>
-                    </div>
-                </div>
+                    )}
+
+                    {/* Placeholder for other tabs */}
+                    {activeTab !== 'available' && (
+                        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                            <p className="text-gray-500">This section is being updated to reflect real-time data.</p>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Quiz Taking Modal */}

@@ -80,7 +80,8 @@ const TeacherCourses = () => {
             };
 
             if (editingCourse) {
-                await coursesApi.update(editingCourse.id, courseData);
+                const courseId = editingCourse.id || editingCourse._id;
+                await coursesApi.update(courseId, courseData);
                 showNotification('Course updated successfully!');
             } else {
                 await coursesApi.create(courseData);

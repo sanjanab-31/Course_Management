@@ -1,138 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import StudentLayout from './StudentLayout';
 import { useAuth } from '../../context/AuthContext';
-import { getAllStudentEnrollments, subscribeToStudentEnrollments } from '../../services/courseService';
-import { liveClassesApi } from '../../services/api';
-import {
-    getTodayClasses,
-    getUpcomingClasses,
-    getRecordedClasses,
-    subscribeToLiveClassesUpdates,
-    formatClassTime,
-    formatClassDate
-} from '../../services/liveClassService';
+import { enrollmentsApi, liveClassesApi } from '../../services/api';
 import { User, Clock, Users, Video, Loader2, BookOpen, AlertCircle } from 'lucide-react';
 
 const LiveClassesPage = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('today');
     const [allClasses, setAllClasses] = useState([]);
-    const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
-    const [enrollments, setEnrollments] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-
-
-    // Fetch enrolled courses
+    // Fetch live classes for enrolled courses
     useEffect(() => {
-        if (!currentUser) {
-            setLoading(false);
-            setError('Please log in to view live classes');
-            return;
-        }
-
-        const fetchEnrollments = async () => {
-            try {
-                setLoading(false);
-                setError(null);
-
-                const enrollmentsData = await getAllStudentEnrollments(currentUser.uid);
-                const courseIds = enrollmentsData.map(enrollment => enrollment.courseId);
-                setEnrolledCourseIds(courseIds);
-                setEnrollments(enrollmentsData);
-            } catch (err) {
-                console.error('Error fetching enrollments:', err);
-                setError('Failed to load enrollments');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchEnrollments();
-
-        // Subscribe to real-time enrollment updates
-        const unsubscribeEnrollments = subscribeToStudentEnrollments(
-            currentUser.uid,
-            (enrollmentsData) => {
-                const courseIds = enrollmentsData.map(enrollment => enrollment.courseId);
-                setEnrolledCourseIds(courseIds);
-            }
-        );
-
-        return () => {
-            unsubscribeEnrollments();
-        };
+        fetchClasses();
     }, [currentUser]);
 
-    // Fetch and subscribe to real-time live classes updates
-    useEffect(() => {
-        if (enrolledCourseIds.length === 0) {
-            setAllClasses([]);
+    const fetchClasses = async () => {
+        if (!currentUser?.uid) {
+            setLoading(false);
             return;
         }
 
-        // Fetch classes immediately
-        const fetchClasses = async () => {
-            try {
-                const allClassesData = [];
-                for (const courseId of enrolledCourseIds) {
+        try {
+            setLoading(true);
+
+            // 1. Get enrolled courses
+            const enrollments = await enrollmentsApi.getByUserId(currentUser.uid);
+
+            if (enrollments.length === 0) {
+                setAllClasses([]);
+                setLoading(false);
+                return;
+            }
+
+            // 2. Fetch live classes for all enrolled courses
+            const allClassesData = [];
+            await Promise.all(
+                enrollments.map(async (enrollment) => {
                     try {
-                        const classes = await liveClassesApi.getByCourse(courseId);
-                        // Get course info from enrollments state
-                        const enrollment = enrollments.find(e => e.courseId === courseId);
-                        const courseName = enrollment?.courseData?.title || enrollment?.courseData?.name || 'Course';
-                        const instructor = enrollment?.courseData?.instructor || enrollment?.courseData?.professor || 'Instructor';
-                        
+                        const classes = await liveClassesApi.getByCourse(enrollment.courseId);
+
                         classes.forEach(cls => {
                             allClassesData.push({
                                 ...cls,
-                                courseId,
-                                courseName,
-                                professor: cls.instructor || instructor,
+                                id: cls._id || cls.id,
+                                courseId: enrollment.courseId,
+                                courseName: enrollment.courseData?.title || 'Unknown Course',
+                                professor: cls.instructor || enrollment.courseData?.instructor || 'Unknown',
                                 startTime: cls.scheduledAt || cls.startTime,
                                 endTime: cls.endTime,
                                 meetingUrl: cls.meetingLink || cls.meetingUrl,
-                                meetingLink: cls.meetingLink || cls.meetingUrl
+                                meetingLink: cls.meetingLink || cls.meetingUrl,
+                                status: cls.status || 'upcoming',
+                                attendees: cls.attendees || 0
                             });
                         });
-                    } catch (error) {
-                        console.error(`Error fetching classes for course ${courseId}:`, error);
+                    } catch (err) {
+                        console.error(`Error fetching classes for course ${enrollment.courseId}:`, err);
                     }
-                }
-                setAllClasses(allClassesData);
-            } catch (error) {
-                console.error('Error fetching live classes:', error);
-            }
-        };
+                })
+            );
 
-        fetchClasses();
-
-        // Then subscribe for real-time updates
-        const unsubscribeClasses = subscribeToLiveClassesUpdates(
-            enrolledCourseIds,
-            (classesData) => {
-                // Enhance with course info
-                const enhancedClasses = classesData.map(cls => {
-                    const enrollment = enrollments.find(e => e.courseId === cls.courseId);
-                    return {
-                        ...cls,
-                        courseId: cls.courseId,
-                        courseName: enrollment?.courseData?.title || enrollment?.courseData?.name || 'Course',
-                        professor: cls.instructor || enrollment?.courseData?.instructor || enrollment?.courseData?.professor || 'Instructor',
-                        startTime: cls.scheduledAt || cls.startTime,
-                        meetingUrl: cls.meetingLink || cls.meetingUrl,
-                        meetingLink: cls.meetingLink || cls.meetingUrl
-                    };
-                });
-                setAllClasses(enhancedClasses);
-            }
-        );
-
-        return () => {
-            unsubscribeClasses();
-        };
-    }, [enrolledCourseIds, enrollments, currentUser]);
+            setAllClasses(allClassesData);
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching live classes:', err);
+            setError('Failed to load live classes');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Filter classes based on active tab
     const getClassesByTab = () => {
@@ -144,12 +82,12 @@ const LiveClassesPage = () => {
         switch (activeTab) {
             case 'today':
                 return allClasses.filter(classItem => {
-                    const classDate = classItem.startTime?.toDate?.() || new Date(classItem.startTime);
+                    const classDate = new Date(classItem.startTime);
                     return classDate >= today && classDate < tomorrow;
                 });
             case 'upcoming':
                 return allClasses.filter(classItem => {
-                    const classDate = classItem.startTime?.toDate?.() || new Date(classItem.startTime);
+                    const classDate = new Date(classItem.startTime);
                     return classDate >= tomorrow && classItem.status !== 'completed';
                 });
             case 'recorded':
@@ -178,6 +116,29 @@ const LiveClassesPage = () => {
         }
     };
 
+    const formatClassDate = (dateString) => {
+        if (!dateString) return 'TBD';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    const formatClassTime = (start, end) => {
+        if (!start) return 'TBD';
+        const startTime = new Date(start).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        if (!end) return startTime;
+        const endTime = new Date(end).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        return `${startTime} - ${endTime}`;
+    };
+
     const tabs = [
         { id: 'today', label: "Today's Classes" },
         { id: 'upcoming', label: 'Upcoming' },
@@ -191,36 +152,26 @@ const LiveClassesPage = () => {
             <div className="space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Join live sessions and access recorded lectures</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Live Classes</h1>
+                    <p className="text-gray-600 mt-1">Join live sessions and access recorded lectures</p>
                 </div>
 
-                {/* Loading State - Removed */}
-                {error ? (
-                    /* Error State */
-                    <div className="flex items-center justify-center h-96">
-                        <div className="text-center">
-                            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                            <p className="text-gray-600">{error}</p>
-                        </div>
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex items-center justify-center py-12 bg-white rounded-lg border border-gray-200">
+                        <Loader2 className="w-8 h-8 animate-spin text-purple-600 mr-3" />
+                        <span className="text-gray-600">Loading classes...</span>
                     </div>
-                ) : enrolledCourseIds.length === 0 ? (
-                    /* No Enrollments State */
-                    <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                        <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            No Enrolled Courses
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                            You need to enroll in courses to access live classes
-                        </p>
-                        <a
-                            href="/my-courses"
-                            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                        >
-                            Browse Available Courses
-                        </a>
+                )}
+
+                {/* Error State */}
+                {error && !loading && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+                        {error}
                     </div>
-                ) : (
+                )}
+
+                {!loading && !error && (
                     <>
                         {/* Tab Navigation */}
                         <div className="border-b border-gray-200">
@@ -259,7 +210,7 @@ const LiveClassesPage = () => {
                         ) : (
                             <div className="space-y-4">
                                 {filteredClasses.map((classItem) => (
-                                    <div key={classItem.id} className="bg-white rounded-lg border border-gray-200 p-5">
+                                    <div key={classItem.id} className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 {/* Course Title and Badge */}
@@ -296,8 +247,8 @@ const LiveClassesPage = () => {
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                                        <Video className="w-4 h-4" />
-                                                        <span>{classItem.attendees || classItem.participants || 0} Participants</span>
+                                                        <Users className="w-4 h-4" />
+                                                        <span>{classItem.attendees || 0} Participants</span>
                                                     </div>
                                                 </div>
                                             </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import TeacherLayout from './TeacherLayout';
-import { Plus, FileText, Clock, Users, Calendar, Edit, Eye, Trash2, X, Loader2 } from 'lucide-react';
+import { Plus, FileText, Clock, Users, Calendar, Edit, Eye, Trash2, X, Loader2, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { coursesApi, assignmentsApi } from '../../services/api';
 
@@ -13,6 +13,11 @@ const TeacherAssignments = () => {
     const [saving, setSaving] = useState(false);
     const [notification, setNotification] = useState(null);
     const [selectedCourse, setSelectedCourse] = useState('');
+
+    // View Submissions State
+    const [viewingAssignment, setViewingAssignment] = useState(null);
+    const [submissions, setSubmissions] = useState([]);
+    const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -43,6 +48,7 @@ const TeacherAssignments = () => {
                     const courseAssignments = await assignmentsApi.getByCourse(course.id);
                     allAssignments.push(...courseAssignments.map(a => ({
                         ...a,
+                        id: a._id || a.id,
                         courseName: course.title
                     })));
                 } catch (error) {
@@ -102,6 +108,20 @@ const TeacherAssignments = () => {
         }
     };
 
+    const handleViewSubmissions = async (assignment) => {
+        setViewingAssignment(assignment);
+        setLoadingSubmissions(true);
+        try {
+            const data = await assignmentsApi.getSubmissions(assignment.courseId, assignment.id);
+            setSubmissions(data);
+        } catch (error) {
+            console.error('Error fetching submissions:', error);
+            showNotification('Failed to load submissions', 'error');
+        } finally {
+            setLoadingSubmissions(false);
+        }
+    };
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'active':
@@ -121,7 +141,9 @@ const TeacherAssignments = () => {
             return new Date(date).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
-                year: 'numeric'
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
         } catch {
             return date;
@@ -136,8 +158,6 @@ const TeacherAssignments = () => {
             ? Math.round(assignments.reduce((acc, a) => acc + ((a.submissions || 0) / Math.max(a.totalStudents || 1, 1)), 0) / assignments.length * 100)
             : 0
     };
-
-    // Loading state removed - always show content
 
     return (
         <TeacherLayout>
@@ -258,7 +278,10 @@ const TeacherAssignments = () => {
                             </div>
 
                             <div className="flex items-center space-x-3 pt-4 border-t border-gray-100">
-                                <button className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                <button
+                                    onClick={() => handleViewSubmissions(assignment)}
+                                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
                                     <Eye className="w-4 h-4" />
                                     <span>View</span>
                                 </button>
@@ -382,6 +405,81 @@ const TeacherAssignments = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* View Submissions Modal */}
+            {viewingAssignment && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <div>
+                                <h2 className="text-xl font-semibold">Submissions: {viewingAssignment.title}</h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {submissions.length} submissions received
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setViewingAssignment(null)}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {loadingSubmissions ? (
+                                <div className="flex justify-center py-12">
+                                    <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                                </div>
+                            ) : submissions.length === 0 ? (
+                                <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions yet</h3>
+                                    <p className="text-gray-600">
+                                        Students have not submitted this assignment yet.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {submissions.map((submission) => (
+                                        <div key={submission._id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-medium text-gray-900">Student ID: {submission.userId}</h3>
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        Submitted: {formatDate(submission.submittedAt)}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    {submission.driveLink && (
+                                                        <a
+                                                            href={submission.driveLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                                                        >
+                                                            <ExternalLink className="w-4 h-4" />
+                                                            <span>Open Drive Link</span>
+                                                        </a>
+                                                    )}
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${submission.grade ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                        {submission.grade ? `Grade: ${submission.grade}` : 'Pending Grade'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {submission.content && (
+                                                <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
+                                                    {submission.content}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

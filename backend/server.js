@@ -64,6 +64,7 @@ const assignmentSubmissionSchema = new mongoose.Schema({
     assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment', required: true },
     userId: { type: String, required: true },
     content: { type: String, required: true },
+    driveLink: { type: String, default: '' },
     attachments: { type: Array, default: [] },
     submittedAt: { type: Date, default: Date.now },
     status: { type: String, default: 'submitted' },
@@ -387,12 +388,13 @@ app.post('/api/courses/:courseId/assignments', async (req, res) => {
 app.post('/api/courses/:courseId/assignments/:assignmentId/submit', async (req, res) => {
     try {
         const { courseId, assignmentId } = req.params;
-        const { userId, content, attachments } = req.body;
+        const { userId, content, attachments, driveLink } = req.body;
 
         const submissionData = {
             assignmentId,
             userId,
             content,
+            driveLink: driveLink || '',
             attachments: attachments || [],
             submittedAt: Date.now(),
             status: 'submitted',
@@ -438,6 +440,30 @@ app.put('/api/courses/:courseId/assignments/:assignmentId/submissions/:userId/gr
     } catch (error) {
         console.error('Error grading assignment:', error);
         res.status(500).json({ error: 'Failed to grade assignment' });
+
+        // Get submissions for an assignment (Teacher)
+        app.get('/api/courses/:courseId/assignments/:assignmentId/submissions', async (req, res) => {
+            try {
+                const { assignmentId } = req.params;
+                const submissions = await AssignmentSubmission.find({ assignmentId });
+                res.json(submissions);
+            } catch (error) {
+                console.error('Error fetching submissions:', error);
+                res.status(500).json({ error: 'Failed to fetch submissions' });
+            }
+        });
+    }
+});
+
+// Get all submissions for a student
+app.get('/api/student/:studentId/submissions', async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const submissions = await AssignmentSubmission.find({ userId: studentId });
+        res.json(submissions);
+    } catch (error) {
+        console.error('Error fetching student submissions:', error);
+        res.status(500).json({ error: 'Failed to fetch student submissions' });
     }
 });
 

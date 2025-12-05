@@ -17,6 +17,8 @@ import StudentCourses from './components/student/StudentCourses';
 import TeacherCourses from './components/teacher/TeacherCourses';
 import TeacherAssignments from './components/teacher/TeacherAssignments';
 import TeacherLiveClasses from './components/teacher/TeacherLiveClasses';
+import TeacherQuizzes from './components/teacher/TeacherQuizzes';
+import TeacherStudyMaterials from './components/teacher/TeacherStudyMaterials';
 import LiveClassesPage from './components/student/LiveClassesPage';
 import AssignmentsPage from './components/student/AssignmentsPage';
 import QuizzesTestsPage from './components/student/QuizzesTestsPage';
@@ -149,6 +151,16 @@ function App() {
           <Route path="/teacher/live-classes" element={
             <RoleRoute role="teacher">
               <TeacherLiveClasses />
+            </RoleRoute>
+          } />
+          <Route path="/teacher/quizzes" element={
+            <RoleRoute role="teacher">
+              <TeacherQuizzes />
+            </RoleRoute>
+          } />
+          <Route path="/teacher/study-materials" element={
+            <RoleRoute role="teacher">
+              <TeacherStudyMaterials />
             </RoleRoute>
           } />
         </Routes>
