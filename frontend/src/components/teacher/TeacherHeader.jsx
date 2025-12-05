@@ -7,9 +7,9 @@ const TeacherHeader = () => {
     const navigate = useNavigate();
 
     const userData = {
-        name: 'Agalya',
+        name: 'K.Agalya',
         role: 'Assistant Professor',
-        department: 'Computer Science',
+        department: 'Computer Science and Engineering',
     };
 
     useEffect(() => {
