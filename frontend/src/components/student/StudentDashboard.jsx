@@ -87,7 +87,7 @@ const StudentDashboard = () => {
         {
             title: 'Data Structures',
             time: '10:00 AM',
-            professor: 'Prof. Nishant Kumar',
+            professor: 'Agalya',
             type: 'Live Class',
             status: 'live'
         },

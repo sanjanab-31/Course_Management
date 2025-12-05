@@ -7,7 +7,7 @@ const sampleCourses = [
     {
         title: 'Data Structures & Algorithms',
         code: 'CS301',
-        instructor: 'Prof. Nishant Kumar',
+        instructor: 'Agalya',
         instructorId: 'teacher@gmail.com', // Default teacher ID
         category: 'Computer Science',
         duration: '12 weeks',

@@ -7,7 +7,7 @@ const TeacherHeader = () => {
     const navigate = useNavigate();
 
     const userData = {
-        name: 'Prof. Nishant Kumar',
+        name: 'Agalya',
         role: 'Assistant Professor',
         department: 'Computer Science',
     };
