@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
@@ -48,10 +48,26 @@ function PublicRoute({ children }) {
   return children;
 }
 
+// Component to handle 404 redirects
+function RedirectHandler() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const redirectPath = sessionStorage.getItem('redirectPath');
+    if (redirectPath) {
+      sessionStorage.removeItem('redirectPath');
+      navigate(redirectPath, { replace: true });
+    }
+  }, [navigate]);
+
+  return null;
+}
+
 function App() {
   return (
     <Router>
       <AuthProvider>
+        <RedirectHandler />
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
