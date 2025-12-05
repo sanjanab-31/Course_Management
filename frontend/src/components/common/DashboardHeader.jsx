@@ -12,7 +12,7 @@ const DashboardHeader = () => {
 
     // Sample data - replace with real data from Firebase/context
     const userData = userRole === 'teacher' ? {
-        name: 'Prof. Nishant Kumar',
+        name: 'Agalya',
         role: 'Assistant Professor',
         department: 'Computer Science',
     } : {
