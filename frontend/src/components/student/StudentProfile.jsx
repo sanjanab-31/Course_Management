@@ -41,7 +41,7 @@ const StudentProfile = () => {
                                     <Mail className="w-5 h-5 text-gray-400" />
                                     <div>
                                         <p className="text-sm text-gray-500">Email</p>
-                                        <p className="text-gray-900">satyam.singh@student.klu.edu</p>
+                                        <p className="text-gray-900">satyam.singh@student.com</p>
                                     </div>
                                 </div>
 

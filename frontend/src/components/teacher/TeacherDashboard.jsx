@@ -19,7 +19,7 @@ const TeacherDashboard = () => {
 
     // Sample data
     const teacherData = {
-        name: 'Prof. Nishant Kumar',
+        name: 'Agalya',
         totalCourses: 12,
         totalCoursesChange: '+2 this month',
         activeStudents: 456,
