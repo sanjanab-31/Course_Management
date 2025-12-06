@@ -179,8 +179,8 @@ const TeacherQuizzes = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {quizzes.map((quiz) => (
-                        <div key={quiz.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                    {quizzes.map((quiz, index) => (
+                        <div key={quiz.id || `quiz-${index}`} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{quiz.title}</h3>

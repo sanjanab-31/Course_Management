@@ -180,8 +180,8 @@ const TeacherStudyMaterials = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {materials.map((material) => (
-                        <div key={material.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                    {materials.map((material, index) => (
+                        <div key={material.id || `material-${index}`} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center space-x-3">
                                     <div className="p-2 bg-blue-50 rounded-lg">
@@ -214,7 +214,7 @@ const TeacherStudyMaterials = () => {
                                     <span>Download</span>
                                 </a>
                                 <button
-                                    onClick={() => handleDelete(material.courseId || formData.courseId, material.id)}
+                                    onClick={() => handleDelete(material.courseId, material.id)}
                                     className="flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-red-200 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                                 >
                                     <Trash2 className="w-4 h-4" />

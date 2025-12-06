@@ -9,6 +9,7 @@ import {
     Award,
     BookMarked,
     TrendingUp,
+    GraduationCap,
     Settings,
     LogOut
 } from 'lucide-react';
@@ -39,6 +40,7 @@ const StudentSidebar = () => {
         { id: 'quizzes-tests', label: 'Quizzes & Tests', icon: Award, path: '/quizzes-tests' },
         { id: 'study-materials', label: 'Study Materials', icon: BookMarked, path: '/study-materials' },
         { id: 'my-progress', label: 'My Progress', icon: TrendingUp, path: '/my-progress' },
+        { id: 'my-grades', label: 'My Grades', icon: GraduationCap, path: '/student/grades' },
         { id: 'settings', label: 'Settings', icon: Settings, path: '/student/settings' },
     ];
 

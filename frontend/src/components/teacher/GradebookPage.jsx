@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import TeacherLayout from './TeacherLayout';
-import { Download, ChevronDown, TrendingUp, Users, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Download, ChevronDown, TrendingUp, Users, FileText, Loader2, Edit2, Save, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { coursesApi, teacherApi } from '../../services/api';
 
@@ -11,6 +11,9 @@ const GradebookPage = () => {
     const [gradebookData, setGradebookData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [editingCell, setEditingCell] = useState(null); // { studentId, field }
+    const [editValue, setEditValue] = useState('');
+    const [saving, setSaving] = useState(false);
 
     // Fetch teacher's courses
     useEffect(() => {
@@ -46,27 +49,7 @@ const GradebookPage = () => {
             setLoading(true);
             try {
                 const data = await teacherApi.getGradebook(selectedCourseId);
-                // Enhance data with mock names if student details aren't fully populated
-                // In a real app, we'd fetch student details or populate them in the backend
-                // For now, we'll assume the backend returns what we need or we map it
-
-                // The backend returns an array of studentGrades objects
-                // We need to fetch student names separately if not included
-                // But let's assume for now we might need to fetch student list to map names
-
-                const students = await teacherApi.getStudents(currentUser.uid);
-
-                const enhancedData = data.map(record => {
-                    const student = students.find(s => s.id === record.studentId || s.userId === record.studentId);
-                    return {
-                        ...record,
-                        name: student ? (student.name || student.email || 'Unknown Student') : 'Unknown Student',
-                        // Calculate average if not provided
-                        average: calculateAverage(record)
-                    };
-                });
-
-                setGradebookData(enhancedData);
+                setGradebookData(data);
                 setError(null);
             } catch (err) {
                 console.error('Error fetching gradebook:', err);
@@ -77,65 +60,73 @@ const GradebookPage = () => {
         };
 
         fetchGradebook();
-    }, [selectedCourseId, currentUser]);
+    }, [selectedCourseId]);
 
-    const calculateAverage = (record) => {
-        let totalScore = 0;
-        let maxTotal = 0;
-
-        record.assignments.forEach(a => {
-            if (a.grade !== null) {
-                totalScore += a.grade;
-                maxTotal += a.maxScore || 100;
-            }
-        });
-
-        record.quizzes.forEach(q => {
-            if (q.score !== null) {
-                totalScore += q.score;
-                // Assuming quizzes are out of 100 or passingScore? 
-                // Let's assume 100 for simplicity or use a standard weight
-                maxTotal += 100;
-            }
-        });
-
-        if (maxTotal === 0) return 0;
-        return Math.round((totalScore / maxTotal) * 100);
+    const handleEditClick = (studentId, field, currentValue) => {
+        setEditingCell({ studentId, field });
+        setEditValue(currentValue || '');
     };
 
-    const getGradeColor = (grade) => {
-        if (grade >= 90) return 'text-green-600';
-        if (grade >= 80) return 'text-blue-600';
-        if (grade >= 70) return 'text-yellow-600';
-        return 'text-red-600';
+    const handleCancelEdit = () => {
+        setEditingCell(null);
+        setEditValue('');
     };
 
-    const getLetter = (grade) => {
-        if (grade >= 97) return 'A+';
-        if (grade >= 93) return 'A';
-        if (grade >= 90) return 'A-';
-        if (grade >= 87) return 'B+';
-        if (grade >= 83) return 'B';
-        if (grade >= 80) return 'B-';
-        if (grade >= 77) return 'C+';
-        if (grade >= 73) return 'C';
-        if (grade >= 70) return 'C-';
-        if (grade >= 60) return 'D';
+    const handleSaveEdit = async (studentId) => {
+        setSaving(true);
+        try {
+            const student = gradebookData.find(s => s.studentId === studentId);
+            const marksData = {
+                assignment1: editingCell.field === 'assignment1' ? parseFloat(editValue) : student.assignment1,
+                assignment2: editingCell.field === 'assignment2' ? parseFloat(editValue) : student.assignment2
+            };
+
+            await teacherApi.updateAssignmentMarks(selectedCourseId, studentId, marksData);
+
+            // Refresh gradebook data
+            const updatedData = await teacherApi.getGradebook(selectedCourseId);
+            setGradebookData(updatedData);
+            setEditingCell(null);
+            setEditValue('');
+        } catch (err) {
+            console.error('Error saving marks:', err);
+            alert('Failed to save marks. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const getLetterGrade = (total) => {
+        if (total >= 97) return 'A+';
+        if (total >= 93) return 'A';
+        if (total >= 90) return 'A-';
+        if (total >= 87) return 'B+';
+        if (total >= 83) return 'B';
+        if (total >= 80) return 'B-';
+        if (total >= 77) return 'C+';
+        if (total >= 73) return 'C';
+        if (total >= 70) return 'C-';
+        if (total >= 60) return 'D';
         return 'F';
+    };
+
+    const getGradeColor = (total) => {
+        if (total >= 90) return 'text-green-600';
+        if (total >= 80) return 'text-blue-600';
+        if (total >= 70) return 'text-yellow-600';
+        return 'text-red-600';
     };
 
     // Calculate class stats
     const stats = {
         classAverage: gradebookData.length > 0
-            ? Math.round(gradebookData.reduce((acc, curr) => acc + curr.average, 0) / gradebookData.length)
+            ? Math.round(gradebookData.reduce((acc, curr) => acc + (curr.finalTotal || 0), 0) / gradebookData.length)
             : 0,
         highestGrade: gradebookData.length > 0
-            ? Math.max(...gradebookData.map(s => s.average))
+            ? Math.max(...gradebookData.map(s => s.finalTotal || 0))
             : 0,
         totalStudents: gradebookData.length,
-        totalAssignments: gradebookData.length > 0
-            ? (gradebookData[0].assignments.length + gradebookData[0].quizzes.length)
-            : 0
+        passingStudents: gradebookData.filter(s => (s.finalTotal || 0) >= 60).length
     };
 
     return (
@@ -197,7 +188,7 @@ const GradebookPage = () => {
                             </div>
                             <div className="flex items-baseline">
                                 <h3 className="text-3xl font-bold text-gray-900">{stats.classAverage}</h3>
-                                <span className="text-lg font-semibold text-gray-500 ml-1">%</span>
+                                <span className="text-lg font-semibold text-gray-500 ml-1">/100</span>
                             </div>
                         </div>
 
@@ -205,12 +196,12 @@ const GradebookPage = () => {
                             <div className="flex justify-between items-start mb-2">
                                 <p className="text-sm font-medium text-gray-500">Highest Grade</p>
                                 <div className="bg-green-100 px-2 py-0.5 rounded text-xs font-bold text-green-700">
-                                    {getLetter(stats.highestGrade)}
+                                    {getLetterGrade(stats.highestGrade)}
                                 </div>
                             </div>
                             <div className="flex items-baseline">
                                 <h3 className="text-3xl font-bold text-gray-900">{stats.highestGrade}</h3>
-                                <span className="text-lg font-semibold text-gray-500 ml-1">%</span>
+                                <span className="text-lg font-semibold text-gray-500 ml-1">/100</span>
                             </div>
                         </div>
 
@@ -226,66 +217,135 @@ const GradebookPage = () => {
 
                         <div className="bg-white p-6 rounded-xl border border-gray-200">
                             <div className="flex justify-between items-start mb-2">
-                                <p className="text-sm font-medium text-gray-500">Assessments</p>
+                                <p className="text-sm font-medium text-gray-500">Passing Students</p>
                                 <div className="bg-purple-100 p-1 rounded-full">
                                     <FileText className="w-4 h-4 text-purple-600" />
                                 </div>
                             </div>
-                            <h3 className="text-3xl font-bold text-gray-900">{stats.totalAssignments}</h3>
+                            <h3 className="text-3xl font-bold text-gray-900">{stats.passingStudents}</h3>
                         </div>
                     </div>
 
-                    {/* Grade Matrix Table */}
+                    {/* Gradebook Table */}
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                         <div className="p-6 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold text-gray-900">Grade Matrix</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">Student Grades</h3>
+                            <p className="text-sm text-gray-500 mt-1">Click on assignment cells to edit marks</p>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                        {/* Dynamic Headers for Assignments */}
-                                        {gradebookData[0]?.assignments.map((a, i) => (
-                                            <th key={`h-a-${i}`} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                {a.title.substring(0, 10)}...
-                                            </th>
-                                        ))}
-                                        {/* Dynamic Headers for Quizzes */}
-                                        {gradebookData[0]?.quizzes.map((q, i) => (
-                                            <th key={`h-q-${i}`} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                {q.title.substring(0, 10)}...
-                                            </th>
-                                        ))}
-                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Average</th>
-                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Letter</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">Student Name</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Video Mark<br />(50)</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Assignment 1</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Assignment 2</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Assignment Total<br />(25)</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Quiz 1</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Quiz 2</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Quiz 3</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-green-50">Quiz Total<br />(25)</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-purple-50">Final Total<br />(100)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {gradebookData.map((student) => (
-                                        <tr key={student.studentId} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {student.name}
+                                    {gradebookData.map((student, index) => (
+                                        <tr key={student.studentId || `student-${index}`} className="hover:bg-gray-50">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white">
+                                                {student.studentName}
                                             </td>
-                                            {/* Assignment Grades */}
-                                            {student.assignments.map((a, i) => (
-                                                <td key={`a-${i}`} className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                                                    {a.grade !== null ? a.grade : '-'}
-                                                </td>
-                                            ))}
-                                            {/* Quiz Grades */}
-                                            {student.quizzes.map((q, i) => (
-                                                <td key={`q-${i}`} className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                                                    {q.score !== null ? q.score : '-'}
-                                                </td>
-                                            ))}
-                                            <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-center ${getGradeColor(student.average)}`}>
-                                                {student.average}%
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                                {student.videoMark || 0}
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-center">
-                                                <span className="px-2 py-1 text-xs font-semibold rounded-md bg-gray-100 text-gray-800 border border-gray-200">
-                                                    {getLetter(student.average)}
-                                                </span>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                                {editingCell?.studentId === student.studentId && editingCell?.field === 'assignment1' ? (
+                                                    <div className="flex items-center justify-center space-x-1">
+                                                        <input
+                                                            type="number"
+                                                            value={editValue}
+                                                            onChange={(e) => setEditValue(e.target.value)}
+                                                            className="w-16 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            autoFocus
+                                                            min="0"
+                                                            max="100"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleSaveEdit(student.studentId)}
+                                                            disabled={saving}
+                                                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                                                        >
+                                                            <Save className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEdit}
+                                                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleEditClick(student.studentId, 'assignment1', student.assignment1)}
+                                                        className="group flex items-center justify-center space-x-1 hover:text-blue-600 w-full"
+                                                    >
+                                                        <span>{student.assignment1 || 0}</span>
+                                                        <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                                {editingCell?.studentId === student.studentId && editingCell?.field === 'assignment2' ? (
+                                                    <div className="flex items-center justify-center space-x-1">
+                                                        <input
+                                                            type="number"
+                                                            value={editValue}
+                                                            onChange={(e) => setEditValue(e.target.value)}
+                                                            className="w-16 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            autoFocus
+                                                            min="0"
+                                                            max="100"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleSaveEdit(student.studentId)}
+                                                            disabled={saving}
+                                                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                                                        >
+                                                            <Save className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEdit}
+                                                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleEditClick(student.studentId, 'assignment2', student.assignment2)}
+                                                        className="group flex items-center justify-center space-x-1 hover:text-blue-600 w-full"
+                                                    >
+                                                        <span>{student.assignment2 || 0}</span>
+                                                        <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-blue-700 text-center bg-blue-50">
+                                                {student.assignmentTotal || 0}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                                {student.quiz1 || 0}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                                {student.quiz2 || 0}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                                {student.quiz3 || 0}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-700 text-center bg-green-50">
+                                                {student.quizTotal || 0}
+                                            </td>
+                                            <td className={`px-4 py-4 whitespace-nowrap text-sm font-bold text-center bg-purple-50 ${getGradeColor(student.finalTotal || 0)}`}>
+                                                {student.finalTotal || 0} ({getLetterGrade(student.finalTotal || 0)})
                                             </td>
                                         </tr>
                                     ))}

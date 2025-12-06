@@ -152,6 +152,16 @@ export const lecturesApi = {
 export const teacherApi = {
     getStudents: (teacherId) => apiCall(`/teacher/${teacherId}/students`),
     getGradebook: (courseId) => apiCall(`/courses/${courseId}/gradebook`),
+    updateAssignmentMarks: (courseId, studentId, marksData) => apiCall(`/courses/${courseId}/gradebook/${studentId}/assignments`, {
+        method: 'PUT',
+        body: JSON.stringify(marksData),
+    }),
+};
+
+// ==================== STUDENT API ====================
+
+export const studentApi = {
+    getGrades: (userId) => apiCall(`/enrollments/${userId}`), // Reusing enrollments endpoint for now
 };
 
 // ==================== HEALTH CHECK ====================
@@ -168,6 +178,7 @@ export default {
     materials: materialsApi,
     lectures: lecturesApi,
     teacher: teacherApi,
+    student: studentApi,
     healthCheck,
     DATA_SOURCE,
 };
