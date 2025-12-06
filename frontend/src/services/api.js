@@ -125,6 +125,27 @@ export const materialsApi = {
         }),
 };
 
+// ==================== LECTURES API ====================
+
+export const lecturesApi = {
+    getByCourse: (courseId) => apiCall(`/courses/${courseId}/lectures`),
+    create: (courseId, lectureData) => apiCall(`/courses/${courseId}/lectures`, {
+        method: 'POST',
+        body: JSON.stringify(lectureData),
+    }),
+    update: (courseId, lectureId, lectureData) => apiCall(`/courses/${courseId}/lectures/${lectureId}`, {
+        method: 'PUT',
+        body: JSON.stringify(lectureData),
+    }),
+    delete: (courseId, lectureId) => apiCall(`/courses/${courseId}/lectures/${lectureId}`, {
+        method: 'DELETE',
+    }),
+    markComplete: (courseId, lectureId, userId) => apiCall(`/courses/${courseId}/lectures/${lectureId}/complete`, {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+    }),
+};
+
 // ==================== TEACHER API ====================
 
 export const teacherApi = {
@@ -144,6 +165,7 @@ export default {
     quizzes: quizzesApi,
     liveClasses: liveClassesApi,
     materials: materialsApi,
+    lectures: lecturesApi,
     teacher: teacherApi,
     healthCheck,
     DATA_SOURCE,

@@ -3,10 +3,12 @@ import StudentLayout from './StudentLayout';
 import { useAuth } from '../../context/AuthContext';
 import {
     coursesApi,
-    enrollmentsApi
+    enrollmentsApi,
+    lecturesApi
 } from '../../services/api';
 import { checkCourseCompletion } from '../../services/certificateService';
 import CertificateGenerator from './CertificateGenerator';
+import VideoPlayerModal from './VideoPlayerModal';
 import {
     BookOpen,
     Clock,
@@ -15,7 +17,10 @@ import {
     Filter,
     Play,
     Loader2,
-    CheckCircle
+    CheckCircle,
+    Video,
+    List,
+    X
 } from 'lucide-react';
 
 const MyCoursesPage = () => {
@@ -29,6 +34,13 @@ const MyCoursesPage = () => {
     const [enrolling, setEnrolling] = useState(null);
     const [notification, setNotification] = useState(null);
     const [certificateData, setCertificateData] = useState({});
+
+    // Video player and course content state
+    const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+    const [showCourseContent, setShowCourseContent] = useState(false);
+    const [selectedCourse, setSelectedCourse] = useState(null);
+    const [courseLectures, setCourseLectures] = useState([]);
+    const [currentLectureIndex, setCurrentLectureIndex] = useState(0);
 
     // Fetch courses and enrollments - refresh periodically to show new courses from teachers
     useEffect(() => {
@@ -122,6 +134,39 @@ const MyCoursesPage = () => {
             showNotification(errorMessage, 'error');
         } finally {
             setEnrolling(null);
+        }
+    };
+
+    // Handle viewing course content
+    const handleViewContent = async (course) => {
+        try {
+            const courseId = course.id || course._id;
+            const lectures = await lecturesApi.getByCourse(courseId);
+            setCourseLectures(lectures.sort((a, b) => a.order - b.order));
+            setSelectedCourse(course);
+            setShowCourseContent(true);
+        } catch (error) {
+            console.error('Error fetching lectures:', error);
+            showNotification('Failed to load course content', 'error');
+        }
+    };
+
+    // Handle playing a lecture
+    const handlePlayLecture = (index) => {
+        setCurrentLectureIndex(index);
+        setShowVideoPlayer(true);
+        setShowCourseContent(false);
+    };
+
+    // Handle lecture completion
+    const handleLectureComplete = async () => {
+        // Refresh enrollments to update progress
+        try {
+            const enrollmentsData = await enrollmentsApi.getByUserId(currentUser.uid);
+            setEnrollments(enrollmentsData);
+            showNotification('Lecture marked as complete! Progress updated.', 'success');
+        } catch (error) {
+            console.error('Error refreshing enrollments:', error);
         }
     };
 
@@ -403,13 +448,18 @@ const MyCoursesPage = () => {
                                                 />
                                             ) : (
                                                 <button
+                                                    onClick={() => handleViewContent(course)}
                                                     className={`flex-1 ${colors.bg} text-white px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center space-x-2 font-medium text-sm`}
                                                 >
-                                                    <Play className="w-4 h-4" />
-                                                    <span>Continue</span>
+                                                    <Video className="w-4 h-4" />
+                                                    <span>View Content</span>
                                                 </button>
                                             )}
-                                            <button className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                                            <button
+                                                onClick={() => handleViewContent(course)}
+                                                className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 flex items-center gap-2"
+                                            >
+                                                <List className="w-4 h-4" />
                                                 Details
                                             </button>
                                         </div>
@@ -469,6 +519,86 @@ const MyCoursesPage = () => {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Course Content Modal */}
+            {showCourseContent && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
+                            <div>
+                                <h2 className="text-xl font-semibold">{selectedCourse?.title}</h2>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    {courseLectures.length} lectures available
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowCourseContent(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            {courseLectures.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    <Video className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                                    <p className="text-lg font-medium">No lectures available yet</p>
+                                    <p className="text-sm">The instructor hasn't added any lectures to this course</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {courseLectures.map((lecture, index) => (
+                                        <div
+                                            key={lecture.id || lecture._id}
+                                            className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
+                                            onClick={() => handlePlayLecture(index)}
+                                        >
+                                            <div className="flex-shrink-0">
+                                                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                    <Play className="w-6 h-6 text-blue-600" />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xs font-semibold text-gray-500">
+                                                        Part {lecture.order}
+                                                    </span>
+                                                </div>
+                                                <h3 className="font-medium text-gray-900">{lecture.title}</h3>
+                                                {lecture.description && (
+                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-1">
+                                                        {lecture.description}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-shrink-0 text-right">
+                                                <p className="text-sm text-gray-500">{lecture.duration || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Video Player Modal */}
+            {showVideoPlayer && selectedCourse && courseLectures.length > 0 && (
+                <VideoPlayerModal
+                    course={selectedCourse}
+                    lectures={courseLectures}
+                    currentLectureIndex={currentLectureIndex}
+                    onClose={() => {
+                        setShowVideoPlayer(false);
+                        setShowCourseContent(true);
+                    }}
+                    onLectureComplete={handleLectureComplete}
+                />
             )}
         </StudentLayout>
     );

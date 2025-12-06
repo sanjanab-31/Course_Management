@@ -47,6 +47,9 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
     };
 
     const calculateScore = () => {
+        if (!quiz?.questionsData || quiz.questionsData.length === 0) {
+            return 0;
+        }
         let correct = 0;
         quiz.questionsData.forEach((question) => {
             if (answers[question.id] === question.correctAnswer) {
@@ -67,6 +70,9 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
     };
 
     const getQuestionStatus = (index) => {
+        if (!quiz?.questionsData || !quiz.questionsData[index]) {
+            return 'unanswered';
+        }
         const question = quiz.questionsData[index];
         if (answers[question.id] !== undefined) {
             return 'answered';
@@ -75,9 +81,9 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
     };
 
     const answeredCount = Object.keys(answers).length;
-    const totalQuestions = quiz.questionsData.length;
+    const totalQuestions = quiz?.questionsData?.length || 0;
 
-    if (quiz.questionsData.length === 0) {
+    if (!quiz?.questionsData || quiz.questionsData.length === 0) {
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
@@ -144,8 +150,8 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
                                 <button
                                     onClick={() => toggleFlag(currentQuestion)}
                                     className={`ml-4 p-2 rounded-lg transition-colors ${flaggedQuestions.has(currentQuestion)
-                                            ? 'bg-yellow-100 text-yellow-600'
-                                            : 'bg-gray-100 text-gray-400 hover:text-gray-600'
+                                        ? 'bg-yellow-100 text-yellow-600'
+                                        : 'bg-gray-100 text-gray-400 hover:text-gray-600'
                                         }`}
                                 >
                                     <Flag className="w-5 h-5" />
@@ -159,14 +165,14 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
                                         key={index}
                                         onClick={() => handleAnswerSelect(currentQuestionData.id, index)}
                                         className={`w-full text-left p-4 rounded-lg border-2 transition-all ${answers[currentQuestionData.id] === index
-                                                ? 'border-blue-600 bg-blue-50'
-                                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                            ? 'border-blue-600 bg-blue-50'
+                                            : 'border-gray-200 hover:border-gray-300 bg-white'
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${answers[currentQuestionData.id] === index
-                                                    ? 'border-blue-600 bg-blue-600'
-                                                    : 'border-gray-300'
+                                                ? 'border-blue-600 bg-blue-600'
+                                                : 'border-gray-300'
                                                 }`}>
                                                 {answers[currentQuestionData.id] === index && (
                                                     <div className="w-3 h-3 bg-white rounded-full"></div>
@@ -185,8 +191,8 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
                                 onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
                                 disabled={currentQuestion === 0}
                                 className={`flex items-center gap-2 px-6 py-2 rounded-lg font-semibold transition-colors ${currentQuestion === 0
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                     }`}
                             >
                                 <ChevronLeft className="w-5 h-5" />
@@ -221,10 +227,10 @@ const QuizTakingModal = ({ quiz, onClose, onComplete }) => {
                                     key={index}
                                     onClick={() => setCurrentQuestion(index)}
                                     className={`w-12 h-12 rounded-lg font-semibold text-sm transition-all relative ${currentQuestion === index
-                                            ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                                            : getQuestionStatus(index) === 'answered'
-                                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                                        ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                                        : getQuestionStatus(index) === 'answered'
+                                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
                                         }`}
                                 >
                                     {index + 1}

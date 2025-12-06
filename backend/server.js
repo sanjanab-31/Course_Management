@@ -40,7 +40,12 @@ const enrollmentSchema = new mongoose.Schema({
     courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
     userId: { type: String, required: true },
     progress: { type: Number, default: 0 },
-    completedLectures: { type: Number, default: 0 },
+    completedLectures: { type: Array, default: [] }, // Array of lecture IDs
+    completedVideosCount: { type: Number, default: 0 },
+    videoMarks: { type: Number, default: 0 }, // Out of 50
+    assignmentMarks: { type: Number, default: 0 }, // Out of 25
+    quizMarks: { type: Number, default: 0 }, // Out of 25
+    totalGrade: { type: Number, default: 0 }, // Out of 100
     status: { type: String, default: 'enrolled' },
     enrolledAt: { type: Date, default: Date.now },
     completedAt: { type: Date, default: null }
@@ -127,6 +132,17 @@ const materialSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+// Lecture Schema (Video Lectures)
+const lectureSchema = new mongoose.Schema({
+    courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
+    title: { type: String, required: true },
+    description: { type: String, default: '' },
+    videoUrl: { type: String, required: true },
+    duration: { type: String, default: '0:00' }, // e.g., "15:30"
+    order: { type: Number, required: true }, // Part 1, Part 2, etc.
+    createdAt: { type: Date, default: Date.now }
+});
+
 // Create Models
 const Course = mongoose.model('Course', courseSchema);
 const Enrollment = mongoose.model('Enrollment', enrollmentSchema);
@@ -136,6 +152,7 @@ const Quiz = mongoose.model('Quiz', quizSchema);
 const QuizAttempt = mongoose.model('QuizAttempt', quizAttemptSchema);
 const LiveClass = mongoose.model('LiveClass', liveClassSchema);
 const Material = mongoose.model('Material', materialSchema);
+const Lecture = mongoose.model('Lecture', lectureSchema);
 import { connectDB } from "./config/db.js";
 connectDB(MONGODB_URI);
 
@@ -653,6 +670,150 @@ app.delete('/api/courses/:courseId/materials/:materialId', async (req, res) => {
     } catch (error) {
         console.error('Error deleting material:', error);
         res.status(500).json({ error: 'Failed to delete material' });
+    }
+});
+
+// ==================== LECTURES API (Video Lectures) ====================
+
+// Get all lectures for a course
+app.get('/api/courses/:courseId/lectures', async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const lectures = await Lecture.find({ courseId }).sort({ order: 1 });
+
+        // Transform lectures to include 'id' field
+        const transformedLectures = lectures.map(lecture => ({
+            ...lecture.toObject(),
+            id: lecture._id.toString()
+        }));
+
+        res.json(transformedLectures);
+    } catch (error) {
+        console.error('Error fetching lectures:', error);
+        res.status(500).json({ error: 'Failed to fetch lectures' });
+    }
+});
+
+// Create lecture (Teacher)
+app.post('/api/courses/:courseId/lectures', async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const { title, description, videoUrl, duration, order } = req.body;
+
+        const lectureData = {
+            courseId,
+            title,
+            description: description || '',
+            videoUrl,
+            duration: duration || '0:00',
+            order
+        };
+
+        const lecture = new Lecture(lectureData);
+        await lecture.save();
+
+        // Update course totalLectures count
+        await Course.findByIdAndUpdate(courseId, { $inc: { totalLectures: 1 } });
+
+        res.status(201).json({
+            ...lecture.toObject(),
+            id: lecture._id.toString()
+        });
+    } catch (error) {
+        console.error('Error creating lecture:', error);
+        res.status(500).json({ error: 'Failed to create lecture' });
+    }
+});
+
+// Update lecture (Teacher)
+app.put('/api/courses/:courseId/lectures/:lectureId', async (req, res) => {
+    try {
+        const { lectureId } = req.params;
+
+        const lecture = await Lecture.findByIdAndUpdate(
+            lectureId,
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        if (!lecture) {
+            return res.status(404).json({ error: 'Lecture not found' });
+        }
+
+        res.json({
+            ...lecture.toObject(),
+            id: lecture._id.toString()
+        });
+    } catch (error) {
+        console.error('Error updating lecture:', error);
+        res.status(500).json({ error: 'Failed to update lecture' });
+    }
+});
+
+// Delete lecture (Teacher)
+app.delete('/api/courses/:courseId/lectures/:lectureId', async (req, res) => {
+    try {
+        const { courseId, lectureId } = req.params;
+
+        const lecture = await Lecture.findByIdAndDelete(lectureId);
+        if (!lecture) {
+            return res.status(404).json({ error: 'Lecture not found' });
+        }
+
+        // Decrement course totalLectures count
+        await Course.findByIdAndUpdate(courseId, { $inc: { totalLectures: -1 } });
+
+        res.json({ message: 'Lecture deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting lecture:', error);
+        res.status(500).json({ error: 'Failed to delete lecture' });
+    }
+});
+
+// Mark lecture as completed (Student)
+app.post('/api/courses/:courseId/lectures/:lectureId/complete', async (req, res) => {
+    try {
+        const { courseId, lectureId } = req.params;
+        const { userId } = req.body;
+
+        // Find enrollment
+        const enrollment = await Enrollment.findOne({ courseId, userId });
+        if (!enrollment) {
+            return res.status(404).json({ error: 'Enrollment not found' });
+        }
+
+        // Check if lecture already completed
+        if (enrollment.completedLectures.includes(lectureId)) {
+            return res.json({ message: 'Lecture already marked as completed' });
+        }
+
+        // Add lecture to completed lectures
+        enrollment.completedLectures.push(lectureId);
+        enrollment.completedVideosCount = enrollment.completedLectures.length;
+
+        // Calculate video marks (out of 50)
+        const totalLectures = await Lecture.countDocuments({ courseId });
+        if (totalLectures > 0) {
+            enrollment.videoMarks = (enrollment.completedVideosCount / totalLectures) * 50;
+        }
+
+        // Update total grade
+        enrollment.totalGrade = enrollment.videoMarks + enrollment.assignmentMarks + enrollment.quizMarks;
+
+        // Update progress percentage
+        enrollment.progress = Math.round(enrollment.totalGrade);
+
+        await enrollment.save();
+
+        res.json({
+            message: 'Lecture marked as completed',
+            videoMarks: enrollment.videoMarks,
+            totalGrade: enrollment.totalGrade,
+            progress: enrollment.progress
+        });
+    } catch (error) {
+        console.error('Error marking lecture as complete:', error);
+        res.status(500).json({ error: 'Failed to mark lecture as complete' });
     }
 });
 
