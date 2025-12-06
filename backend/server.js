@@ -280,6 +280,11 @@ app.get('/api/enrollments/:userId', async (req, res) => {
                 userId: enrollment.userId,
                 progress: enrollment.progress,
                 completedLectures: enrollment.completedLectures,
+                completedVideosCount: enrollment.completedVideosCount,
+                videoMarks: enrollment.videoMarks || 0,
+                assignmentMarks: enrollment.assignmentMarks || 0,
+                quizMarks: enrollment.quizMarks || 0,
+                totalGrade: enrollment.totalGrade || 0,
                 status: enrollment.status,
                 enrolledAt: enrollment.enrolledAt,
                 completedAt: enrollment.completedAt
