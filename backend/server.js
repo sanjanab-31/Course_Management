@@ -776,6 +776,10 @@ app.post('/api/courses/:courseId/lectures/:lectureId/complete', async (req, res)
         const { courseId, lectureId } = req.params;
         const { userId } = req.body;
 
+        if (!userId) {
+            return res.status(400).json({ error: 'Missing userId' });
+        }
+
         // Find enrollment
         const enrollment = await Enrollment.findOne({ courseId, userId });
         if (!enrollment) {
@@ -795,10 +799,17 @@ app.post('/api/courses/:courseId/lectures/:lectureId/complete', async (req, res)
         const totalLectures = await Lecture.countDocuments({ courseId });
         if (totalLectures > 0) {
             enrollment.videoMarks = (enrollment.completedVideosCount / totalLectures) * 50;
+        } else {
+            enrollment.videoMarks = 50; // If no lectures, give full marks? Or 0. Let's keep it safe.
         }
 
+        // Ensure marks are numbers
+        const videoMarks = enrollment.videoMarks || 0;
+        const assignmentMarks = enrollment.assignmentMarks || 0;
+        const quizMarks = enrollment.quizMarks || 0;
+
         // Update total grade
-        enrollment.totalGrade = enrollment.videoMarks + enrollment.assignmentMarks + enrollment.quizMarks;
+        enrollment.totalGrade = videoMarks + assignmentMarks + quizMarks;
 
         // Update progress percentage
         enrollment.progress = Math.round(enrollment.totalGrade);
@@ -813,7 +824,7 @@ app.post('/api/courses/:courseId/lectures/:lectureId/complete', async (req, res)
         });
     } catch (error) {
         console.error('Error marking lecture as complete:', error);
-        res.status(500).json({ error: 'Failed to mark lecture as complete' });
+        res.status(500).json({ error: 'Failed to mark lecture as complete', details: error.message });
     }
 });
 
