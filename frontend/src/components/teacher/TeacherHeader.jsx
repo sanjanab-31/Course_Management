@@ -32,7 +32,7 @@ const TeacherHeader = () => {
             '/teacher/assignments': 'Assignments',
             '/teacher/live-classes': 'Live Classes',
             '/students': 'Students',
-            '/teacher/gradebook': 'Gradebook',
+            '/gradebook': 'Gradebook',
             '/settings': 'Settings',
             '/profile': 'Profile',
         };

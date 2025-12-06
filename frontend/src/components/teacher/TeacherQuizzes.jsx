@@ -41,13 +41,13 @@ const TeacherQuizzes = () => {
             const allQuizzes = [];
             for (const course of teacherCourses) {
                 try {
-                    const courseQuizzes = await quizzesApi.getByCourse(course._id);
+                    const courseQuizzes = await quizzesApi.getByCourse(course.id);
                     allQuizzes.push(...courseQuizzes.map(q => ({
                         ...q,
                         courseName: course.title
                     })));
                 } catch (error) {
-                    console.log(`No quizzes for course ${course._id}`);
+                    console.log(`No quizzes for course ${course.id}`);
                 }
             }
             setQuizzes(allQuizzes);
@@ -180,7 +180,7 @@ const TeacherQuizzes = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {quizzes.map((quiz) => (
-                        <div key={quiz._id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                        <div key={quiz.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{quiz.title}</h3>
@@ -253,7 +253,7 @@ const TeacherQuizzes = () => {
                                 >
                                     <option value="">Select a course</option>
                                     {courses.map(course => (
-                                        <option key={course._id} value={course._id}>{course.title}</option>
+                                        <option key={course.id} value={course.id}>{course.title}</option>
                                     ))}
                                 </select>
                             </div>

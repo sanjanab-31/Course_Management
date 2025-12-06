@@ -2,7 +2,7 @@
 // Set to 'api' to use backend API, or 'firebase' to use Firebase directly
 const DATA_SOURCE = 'api';
 
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 // Helper function for API calls
 const apiCall = async (endpoint, options = {}) => {
@@ -97,18 +97,6 @@ export const quizzesApi = {
         }),
 };
 
-// ==================== GRADEBOOK API ====================
-
-export const gradebookApi = {
-    getCourseGradebook: (courseId) => apiCall(`/courses/${courseId}/gradebook`),
-    updateAssignmentMarks: (enrollmentId, marksData) =>
-        apiCall(`/enrollments/${enrollmentId}/assignment-marks`, {
-            method: 'PUT',
-            body: JSON.stringify(marksData),
-        }),
-    getStudentGrades: (userId) => apiCall(`/students/${userId}/grades`),
-};
-
 // ==================== LIVE CLASSES API ====================
 
 export const liveClassesApi = {
@@ -176,7 +164,6 @@ export default {
     enrollments: enrollmentsApi,
     assignments: assignmentsApi,
     quizzes: quizzesApi,
-    gradebook: gradebookApi,
     liveClasses: liveClassesApi,
     materials: materialsApi,
     lectures: lecturesApi,

@@ -47,14 +47,14 @@ const TeacherAssignments = () => {
             const allAssignments = [];
             for (const course of teacherCourses) {
                 try {
-                    const courseAssignments = await assignmentsApi.getByCourse(course._id);
+                    const courseAssignments = await assignmentsApi.getByCourse(course.id);
                     allAssignments.push(...courseAssignments.map(a => ({
                         ...a,
                         id: a._id || a.id,
                         courseName: course.title
                     })));
                 } catch (error) {
-                    console.log(`No assignments for course ${course._id}`);
+                    console.log(`No assignments for course ${course.id}`);
                 }
             }
             setAssignments(allAssignments);
@@ -358,12 +358,12 @@ const TeacherAssignments = () => {
                                 >
                                     <option value="">Select a course</option>
                                     {courses.map(course => {
-                                        const courseAssignmentCount = assignments.filter(a => a.courseId === course._id).length;
+                                        const courseAssignmentCount = assignments.filter(a => a.courseId === course.id).length;
                                         const isLimitReached = courseAssignmentCount >= 2;
                                         return (
                                             <option
-                                                key={course._id}
-                                                value={course._id}
+                                                key={course.id}
+                                                value={course.id}
                                                 disabled={isLimitReached}
                                             >
                                                 {course.title} {isLimitReached ? '(2/2 assignments)' : `(${courseAssignmentCount}/2)`}

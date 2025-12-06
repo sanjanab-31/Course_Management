@@ -40,13 +40,13 @@ const TeacherLiveClasses = () => {
             const allClasses = [];
             for (const course of teacherCourses) {
                 try {
-                    const courseClasses = await liveClassesApi.getByCourse(course._id);
+                    const courseClasses = await liveClassesApi.getByCourse(course.id);
                     allClasses.push(...courseClasses.map(c => ({
                         ...c,
                         courseName: course.title
                     })));
                 } catch (error) {
-                    console.log(`No classes for course ${course._id}`);
+                    console.log(`No classes for course ${course.id}`);
                 }
             }
             setClasses(allClasses);
@@ -206,7 +206,7 @@ const TeacherLiveClasses = () => {
                     {filteredClasses.map((classItem) => {
                         const status = getClassStatus(classItem);
                         return (
-                            <div key={classItem._id} className="bg-white rounded-xl border border-gray-200 p-6">
+                            <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center space-x-3">
                                         <div className={`p-2 rounded-lg ${status === 'live' ? 'bg-red-100' :
@@ -304,7 +304,7 @@ const TeacherLiveClasses = () => {
                                 >
                                     <option value="">Select a course</option>
                                     {courses.map(course => (
-                                        <option key={course._id} value={course._id}>{course.title}</option>
+                                        <option key={course.id} value={course.id}>{course.title}</option>
                                     ))}
                                 </select>
                             </div>
