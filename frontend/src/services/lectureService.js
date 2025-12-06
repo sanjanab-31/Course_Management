@@ -1,6 +1,6 @@
 import { apiCall } from './api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://course-management-b.onrender.com/api';
 
 /**
  * Get all lectures for a course

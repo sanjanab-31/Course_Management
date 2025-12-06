@@ -2,7 +2,7 @@
 // Set to 'api' to use backend API, or 'firebase' to use Firebase directly
 const DATA_SOURCE = 'api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://course-management-b.onrender.com/api';
 
 // Helper function for API calls
 const apiCall = async (endpoint, options = {}) => {
