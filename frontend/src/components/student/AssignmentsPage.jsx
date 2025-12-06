@@ -40,14 +40,6 @@ const AssignmentsPage = () => {
                 return;
             }
 
-            // Get student's submissions
-            let mySubmissions = [];
-            try {
-                mySubmissions = await assignmentsApi.getMySubmissions(currentUser.uid);
-            } catch (err) {
-                console.error('Error fetching submissions:', err);
-            }
-
             // Fetch assignments for all enrolled courses
             const allAssignments = [];
             await Promise.all(
@@ -55,9 +47,17 @@ const AssignmentsPage = () => {
                     try {
                         const courseAssignments = await assignmentsApi.getByCourse(enrollment.courseId);
 
+                        // Get submissions for this course
+                        let mySubmissions = [];
+                        try {
+                            mySubmissions = await assignmentsApi.getMySubmissions(currentUser.uid, enrollment.courseId);
+                        } catch (err) {
+                            console.error(`Error fetching submissions for course ${enrollment.courseId}:`, err);
+                        }
+
                         courseAssignments.forEach(assignment => {
                             const assignmentId = assignment._id || assignment.id;
-                            const submission = mySubmissions.find(s => s.assignmentId === assignmentId);
+                            const submission = mySubmissions.find(s => (s.assignmentId._id || s.assignmentId) === assignmentId);
 
                             allAssignments.push({
                                 ...assignment,
@@ -67,7 +67,10 @@ const AssignmentsPage = () => {
                                 professor: enrollment.courseData?.instructor || 'Unknown',
                                 status: submission ? 'submitted' : 'pending',
                                 submittedDate: submission ? new Date(submission.submittedAt).toLocaleDateString() : null,
-                                score: submission ? submission.grade : null,
+                                submission: submission,
+                                score: submission?.score || null,
+                                feedback: submission?.feedback || null,
+                                driveLink: submission?.driveLink || null,
                                 points: assignment.maxScore || 100,
                                 dueDate: assignment.dueDate
                                     ? new Date(assignment.dueDate).toLocaleDateString()
@@ -131,20 +134,30 @@ const AssignmentsPage = () => {
 
         try {
             setSubmitting(selectedAssignment.id);
-            await assignmentsApi.submit(selectedAssignment.courseId, selectedAssignment.id, {
+            await assignmentsApi.submit(selectedAssignment.id, {
                 userId: currentUser.uid,
-                content: "Assignment submission via Drive",
                 driveLink: driveLink,
-                attachments: []
+                courseId: selectedAssignment.courseId
             });
 
             // Close modal and refresh
             setSubmissionModalOpen(false);
+            setDriveLink('');
             await fetchAssignments();
-            alert("Assignment submitted successfully!");
+            alert("✅ Assignment submitted successfully!");
         } catch (error) {
             console.error("Error submitting assignment:", error);
-            alert("Failed to submit assignment");
+
+            // Show user-friendly error message
+            if (error.message && error.message.includes('already submitted')) {
+                alert("⚠️ You have already submitted this assignment. Please check the 'Submitted' tab.");
+                setSubmissionModalOpen(false);
+                await fetchAssignments(); // Refresh to show correct status
+            } else if (error.message && error.message.includes('Invalid Google Drive link')) {
+                alert("❌ Invalid Google Drive link. Please provide a valid Google Drive or Google Docs link.");
+            } else {
+                alert("❌ Failed to submit assignment. Please try again.");
+            }
         } finally {
             setSubmitting(null);
         }
@@ -278,9 +291,24 @@ const AssignmentsPage = () => {
                                                     )}
                                                 </button>
                                             ) : (
-                                                <button className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                                    View Submission
-                                                </button>
+                                                <>
+                                                    {assignment.driveLink && (
+                                                        <a
+                                                            href={assignment.driveLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                                                        >
+                                                            <ExternalLink className="w-4 h-4" />
+                                                            View Submission
+                                                        </a>
+                                                    )}
+                                                    {assignment.score !== null && (
+                                                        <div className="px-4 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-lg">
+                                                            Score: {assignment.score}/{assignment.points}
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -308,9 +336,17 @@ const AssignmentsPage = () => {
                         <form onSubmit={handleSubmitAssignment} className="p-6 space-y-4">
                             <div>
                                 <h3 className="font-medium text-gray-900 mb-2">{selectedAssignment.title}</h3>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Please provide a Google Drive link to your assignment submission.
+                                <p className="text-sm text-gray-600 mb-2">
+                                    Submit your assignment via Google Drive link.
                                 </p>
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 mb-4">
+                                    <p className="font-medium mb-1">📌 Important:</p>
+                                    <ul className="list-disc list-inside space-y-1 text-xs">
+                                        <li>Make sure your file is shared with "Anyone with the link can view"</li>
+                                        <li>Use Google Drive or Google Docs links only</li>
+                                        <li>Example: https://drive.google.com/file/d/...</li>
+                                    </ul>
+                                </div>
                             </div>
 
                             <div>
@@ -322,7 +358,7 @@ const AssignmentsPage = () => {
                                     value={driveLink}
                                     onChange={(e) => setDriveLink(e.target.value)}
                                     required
-                                    placeholder="https://drive.google.com/..."
+                                    placeholder="https://drive.google.com/file/d/..."
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 />
                             </div>

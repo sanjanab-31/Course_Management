@@ -18,6 +18,8 @@ const TeacherAssignments = () => {
     const [viewingAssignment, setViewingAssignment] = useState(null);
     const [submissions, setSubmissions] = useState([]);
     const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+    const [gradingSubmission, setGradingSubmission] = useState(null);
+    const [gradeData, setGradeData] = useState({ score: '', feedback: '' });
 
     const [formData, setFormData] = useState({
         title: '',
@@ -45,14 +47,14 @@ const TeacherAssignments = () => {
             const allAssignments = [];
             for (const course of teacherCourses) {
                 try {
-                    const courseAssignments = await assignmentsApi.getByCourse(course.id);
+                    const courseAssignments = await assignmentsApi.getByCourse(course._id);
                     allAssignments.push(...courseAssignments.map(a => ({
                         ...a,
                         id: a._id || a.id,
                         courseName: course.title
                     })));
                 } catch (error) {
-                    console.log(`No assignments for course ${course.id}`);
+                    console.log(`No assignments for course ${course._id}`);
                 }
             }
             setAssignments(allAssignments);
@@ -81,6 +83,13 @@ const TeacherAssignments = () => {
             return;
         }
 
+        // Check assignment limit for selected course
+        const courseAssignments = assignments.filter(a => a.courseId === formData.courseId);
+        if (courseAssignments.length >= 2) {
+            showNotification('Maximum 2 assignments per course allowed', 'error');
+            return;
+        }
+
         setSaving(true);
         try {
             await assignmentsApi.create(formData.courseId, {
@@ -102,7 +111,8 @@ const TeacherAssignments = () => {
             fetchData();
         } catch (error) {
             console.error('Error creating assignment:', error);
-            showNotification('Failed to create assignment', 'error');
+            const errorMsg = error.response?.data?.message || error.message || 'Failed to create assignment';
+            showNotification(errorMsg, 'error');
         } finally {
             setSaving(false);
         }
@@ -119,6 +129,31 @@ const TeacherAssignments = () => {
             showNotification('Failed to load submissions', 'error');
         } finally {
             setLoadingSubmissions(false);
+        }
+    };
+
+    const handleGradeSubmission = async (e) => {
+        e.preventDefault();
+        if (!gradingSubmission) return;
+
+        setSaving(true);
+        try {
+            await assignmentsApi.gradeSubmission(gradingSubmission._id, {
+                score: parseFloat(gradeData.score),
+                feedback: gradeData.feedback,
+                gradedBy: currentUser?.uid
+            });
+
+            showNotification('Assignment graded successfully!');
+            setGradingSubmission(null);
+            setGradeData({ score: '', feedback: '' });
+            // Refresh submissions
+            handleViewSubmissions(viewingAssignment);
+        } catch (error) {
+            console.error('Error grading assignment:', error);
+            showNotification('Failed to grade assignment', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -322,10 +357,23 @@ const TeacherAssignments = () => {
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 >
                                     <option value="">Select a course</option>
-                                    {courses.map(course => (
-                                        <option key={course.id} value={course.id}>{course.title}</option>
-                                    ))}
+                                    {courses.map(course => {
+                                        const courseAssignmentCount = assignments.filter(a => a.courseId === course._id).length;
+                                        const isLimitReached = courseAssignmentCount >= 2;
+                                        return (
+                                            <option
+                                                key={course._id}
+                                                value={course._id}
+                                                disabled={isLimitReached}
+                                            >
+                                                {course.title} {isLimitReached ? '(2/2 assignments)' : `(${courseAssignmentCount}/2)`}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Maximum 2 assignments per course
+                                </p>
                             </div>
 
                             <div>
@@ -445,7 +493,7 @@ const TeacherAssignments = () => {
                                 <div className="space-y-4">
                                     {submissions.map((submission) => (
                                         <div key={submission._id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                                            <div className="flex justify-between items-start">
+                                            <div className="flex justify-between items-start mb-3">
                                                 <div>
                                                     <h3 className="font-medium text-gray-900">Student ID: {submission.userId}</h3>
                                                     <p className="text-sm text-gray-500 mt-1">
@@ -461,18 +509,84 @@ const TeacherAssignments = () => {
                                                             className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
                                                         >
                                                             <ExternalLink className="w-4 h-4" />
-                                                            <span>Open Drive Link</span>
+                                                            <span>View</span>
                                                         </a>
                                                     )}
-                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${submission.grade ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                                        }`}>
-                                                        {submission.grade ? `Grade: ${submission.grade}` : 'Pending Grade'}
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${submission.status === 'graded' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                        {submission.status === 'graded' ? `${submission.score}/${viewingAssignment.maxScore}` : 'Not Graded'}
                                                     </span>
                                                 </div>
                                             </div>
-                                            {submission.content && (
-                                                <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
-                                                    {submission.content}
+
+                                            {/* Grading Form */}
+                                            {gradingSubmission?._id === submission._id ? (
+                                                <form onSubmit={handleGradeSubmission} className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                Score (out of {viewingAssignment.maxScore})
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={gradeData.score}
+                                                                onChange={(e) => setGradeData(prev => ({ ...prev, score: e.target.value }))}
+                                                                max={viewingAssignment.maxScore}
+                                                                min="0"
+                                                                step="0.5"
+                                                                required
+                                                                className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mb-3">
+                                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                            Feedback (Optional)
+                                                        </label>
+                                                        <textarea
+                                                            value={gradeData.feedback}
+                                                            onChange={(e) => setGradeData(prev => ({ ...prev, feedback: e.target.value }))}
+                                                            rows={2}
+                                                            className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                                                            placeholder="Add feedback for student..."
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setGradingSubmission(null);
+                                                                setGradeData({ score: '', feedback: '' });
+                                                            }}
+                                                            className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            type="submit"
+                                                            disabled={saving}
+                                                            className="flex-1 px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+                                                        >
+                                                            {saving ? 'Saving...' : 'Submit Grade'}
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            ) : (
+                                                <div className="mt-3 flex items-center justify-between">
+                                                    {submission.feedback && (
+                                                        <p className="text-sm text-gray-600 italic">"{submission.feedback}"</p>
+                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            setGradingSubmission(submission);
+                                                            setGradeData({
+                                                                score: submission.score || '',
+                                                                feedback: submission.feedback || ''
+                                                            });
+                                                        }}
+                                                        className="ml-auto px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
+                                                    >
+                                                        {submission.status === 'graded' ? 'Edit Grade' : 'Grade'}
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>

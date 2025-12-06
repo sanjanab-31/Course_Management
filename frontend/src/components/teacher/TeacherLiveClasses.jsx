@@ -40,13 +40,13 @@ const TeacherLiveClasses = () => {
             const allClasses = [];
             for (const course of teacherCourses) {
                 try {
-                    const courseClasses = await liveClassesApi.getByCourse(course.id);
+                    const courseClasses = await liveClassesApi.getByCourse(course._id);
                     allClasses.push(...courseClasses.map(c => ({
                         ...c,
                         courseName: course.title
                     })));
                 } catch (error) {
-                    console.log(`No classes for course ${course.id}`);
+                    console.log(`No classes for course ${course._id}`);
                 }
             }
             setClasses(allClasses);
@@ -172,8 +172,8 @@ const TeacherLiveClasses = () => {
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors capitalize ${activeTab === tab
-                                ? 'bg-white text-purple-700 shadow-sm'
-                                : 'text-gray-600 hover:text-purple-700'
+                            ? 'bg-white text-purple-700 shadow-sm'
+                            : 'text-gray-600 hover:text-purple-700'
                             }`}
                     >
                         {tab} ({classes.filter(c => getClassStatus(c) === tab).length})
@@ -206,14 +206,14 @@ const TeacherLiveClasses = () => {
                     {filteredClasses.map((classItem) => {
                         const status = getClassStatus(classItem);
                         return (
-                            <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6">
+                            <div key={classItem._id} className="bg-white rounded-xl border border-gray-200 p-6">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center space-x-3">
                                         <div className={`p-2 rounded-lg ${status === 'live' ? 'bg-red-100' :
-                                                status === 'upcoming' ? 'bg-purple-100' : 'bg-gray-100'
+                                            status === 'upcoming' ? 'bg-purple-100' : 'bg-gray-100'
                                             }`}>
                                             <Video className={`w-5 h-5 ${status === 'live' ? 'text-red-600' :
-                                                    status === 'upcoming' ? 'text-purple-600' : 'text-gray-600'
+                                                status === 'upcoming' ? 'text-purple-600' : 'text-gray-600'
                                                 }`} />
                                         </div>
                                         <div>
@@ -304,7 +304,7 @@ const TeacherLiveClasses = () => {
                                 >
                                     <option value="">Select a course</option>
                                     {courses.map(course => (
-                                        <option key={course.id} value={course.id}>{course.title}</option>
+                                        <option key={course._id} value={course._id}>{course.title}</option>
                                     ))}
                                 </select>
                             </div>

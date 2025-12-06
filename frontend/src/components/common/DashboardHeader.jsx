@@ -57,7 +57,7 @@ const DashboardHeader = () => {
             '/settings': 'Settings',
             '/profile': 'Profile',
             '/students': 'Students',
-            '/gradebook': 'Gradebook'
+            '/teacher/gradebook': 'Gradebook',
         };
         return titles[path] || 'Dashboard';
     };

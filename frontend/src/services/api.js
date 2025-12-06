@@ -2,7 +2,7 @@
 // Set to 'api' to use backend API, or 'firebase' to use Firebase directly
 const DATA_SOURCE = 'api';
 
-const API_BASE_URL = 'https://course-management-b.onrender.com/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 // Helper function for API calls
 const apiCall = async (endpoint, options = {}) => {
@@ -66,19 +66,20 @@ export const assignmentsApi = {
         method: 'POST',
         body: JSON.stringify(assignmentData),
     }),
-    submit: (courseId, assignmentId, submissionData) =>
-        apiCall(`/courses/${courseId}/assignments/${assignmentId}/submit`, {
+    submit: (assignmentId, submissionData) =>
+        apiCall(`/assignments/${assignmentId}/submit`, {
             method: 'POST',
             body: JSON.stringify(submissionData),
         }),
-    grade: (courseId, assignmentId, userId, gradeData) =>
-        apiCall(`/courses/${courseId}/assignments/${assignmentId}/submissions/${userId}/grade`, {
+    gradeSubmission: (submissionId, gradeData) =>
+        apiCall(`/assignments/submissions/${submissionId}/grade`, {
             method: 'PUT',
             body: JSON.stringify(gradeData),
         }),
     getSubmissions: (courseId, assignmentId) =>
         apiCall(`/courses/${courseId}/assignments/${assignmentId}/submissions`),
-    getMySubmissions: (studentId) => apiCall(`/student/${studentId}/submissions`),
+    getMySubmissions: (userId, courseId) =>
+        apiCall(`/assignments/my-submissions/${userId}/${courseId}`),
 };
 
 // ==================== QUIZZES API ====================
@@ -94,6 +95,18 @@ export const quizzesApi = {
             method: 'POST',
             body: JSON.stringify(attemptData),
         }),
+};
+
+// ==================== GRADEBOOK API ====================
+
+export const gradebookApi = {
+    getCourseGradebook: (courseId) => apiCall(`/courses/${courseId}/gradebook`),
+    updateAssignmentMarks: (enrollmentId, marksData) =>
+        apiCall(`/enrollments/${enrollmentId}/assignment-marks`, {
+            method: 'PUT',
+            body: JSON.stringify(marksData),
+        }),
+    getStudentGrades: (userId) => apiCall(`/students/${userId}/grades`),
 };
 
 // ==================== LIVE CLASSES API ====================
@@ -163,6 +176,7 @@ export default {
     enrollments: enrollmentsApi,
     assignments: assignmentsApi,
     quizzes: quizzesApi,
+    gradebook: gradebookApi,
     liveClasses: liveClassesApi,
     materials: materialsApi,
     lectures: lecturesApi,

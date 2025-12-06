@@ -7,7 +7,7 @@ import ForgotPassword from './components/auth/ForgotPassword';
 import StudentDashboard from './components/student/StudentDashboard';
 import TeacherDashboard from './components/teacher/TeacherDashboard';
 import StudentsPage from './components/teacher/StudentsPage';
-import GradebookPage from './components/teacher/GradebookPage';
+import TeacherGradebook from './components/teacher/TeacherGradebook';
 
 import StudentProfile from './components/student/StudentProfile';
 import TeacherProfile from './components/teacher/TeacherProfile';
@@ -24,6 +24,7 @@ import AssignmentsPage from './components/student/AssignmentsPage';
 import QuizzesTestsPage from './components/student/QuizzesTestsPage';
 import StudyMaterialsPage from './components/student/StudyMaterialsPage';
 import MyProgressPage from './components/student/MyProgressPage';
+import StudentGrades from './components/student/StudentGrades';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -91,9 +92,9 @@ function App() {
               <StudentsPage />
             </RoleRoute>
           } />
-          <Route path="/gradebook" element={
+          <Route path="/teacher/gradebook" element={
             <RoleRoute role="teacher">
-              <GradebookPage />
+              <TeacherGradebook />
             </RoleRoute>
           } />
 
@@ -150,6 +151,11 @@ function App() {
           <Route path="/my-progress" element={
             <RoleRoute role="student">
               <MyProgressPage />
+            </RoleRoute>
+          } />
+          <Route path="/student/grades" element={
+            <RoleRoute role="student">
+              <StudentGrades />
             </RoleRoute>
           } />
 

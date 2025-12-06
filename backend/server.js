@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5001; // process.env.PORT || 5001;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/course_management';
 
 // Middleware
@@ -67,15 +67,15 @@ const assignmentSchema = new mongoose.Schema({
 // Assignment Submission Schema
 const assignmentSubmissionSchema = new mongoose.Schema({
     assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment', required: true },
+    courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
     userId: { type: String, required: true },
-    content: { type: String, required: true },
-    driveLink: { type: String, default: '' },
-    attachments: { type: Array, default: [] },
+    driveLink: { type: String, required: true }, // Google Drive link (required)
     submittedAt: { type: Date, default: Date.now },
-    status: { type: String, default: 'submitted' },
-    grade: { type: Number, default: null },
-    feedback: { type: String, default: null },
-    gradedAt: { type: Date, default: null }
+    status: { type: String, default: 'submitted' }, // submitted, graded
+    score: { type: Number, default: null }, // Out of assignment maxScore
+    feedback: { type: String, default: '' },
+    gradedAt: { type: Date, default: null },
+    gradedBy: { type: String, default: null }
 });
 
 // Quiz Schema
@@ -381,6 +381,15 @@ app.post('/api/courses/:courseId/assignments', async (req, res) => {
         const { courseId } = req.params;
         const { title, description, dueDate, maxScore, attachments } = req.body;
 
+        // Check 2-assignment limit per course
+        const existingCount = await Assignment.countDocuments({ courseId });
+        if (existingCount >= 2) {
+            return res.status(400).json({
+                error: 'Assignment limit reached',
+                message: 'Maximum 2 assignments allowed per course. Please delete an existing assignment to add a new one.'
+            });
+        }
+
         const assignmentData = {
             courseId,
             title,
@@ -402,21 +411,31 @@ app.post('/api/courses/:courseId/assignments', async (req, res) => {
 });
 
 // Submit assignment (Student)
-app.post('/api/courses/:courseId/assignments/:assignmentId/submit', async (req, res) => {
+app.post('/api/assignments/:assignmentId/submit', async (req, res) => {
     try {
-        const { courseId, assignmentId } = req.params;
-        const { userId, content, attachments, driveLink } = req.body;
+        const { assignmentId } = req.params;
+        const { userId, driveLink, courseId } = req.body;
+
+        // Validate Drive link
+        if (!driveLink || !driveLink.includes('drive.google.com') && !driveLink.includes('docs.google.com')) {
+            return res.status(400).json({ error: 'Invalid Google Drive link' });
+        }
+
+        // Check if already submitted
+        const existing = await AssignmentSubmission.findOne({ assignmentId, userId });
+        if (existing) {
+            return res.status(400).json({ error: 'Assignment already submitted' });
+        }
 
         const submissionData = {
             assignmentId,
+            courseId,
             userId,
-            content,
-            driveLink: driveLink || '',
-            attachments: attachments || [],
+            driveLink,
             submittedAt: Date.now(),
             status: 'submitted',
-            grade: null,
-            feedback: null
+            score: null,
+            feedback: ''
         };
 
         const submission = new AssignmentSubmission(submissionData);
@@ -425,54 +444,119 @@ app.post('/api/courses/:courseId/assignments/:assignmentId/submit', async (req, 
         // Increment submission count
         await Assignment.findByIdAndUpdate(assignmentId, { $inc: { submissions: 1 } });
 
-        res.status(201).json({ assignmentId, ...submissionData });
+        res.status(201).json(submission);
     } catch (error) {
         console.error('Error submitting assignment:', error);
-        res.status(500).json({ error: 'Failed to submit assignment' });
+        res.status(500).json({ error: 'Failed to submit assignment', details: error.message });
     }
 });
 
 // Grade assignment (Teacher)
-app.put('/api/courses/:courseId/assignments/:assignmentId/submissions/:userId/grade', async (req, res) => {
+app.put('/api/assignments/submissions/:submissionId/grade', async (req, res) => {
     try {
-        const { assignmentId, userId } = req.params;
-        const { grade, feedback } = req.body;
+        const { submissionId } = req.params;
+        const { score, feedback, gradedBy } = req.body;
 
-        const submission = await AssignmentSubmission.findOneAndUpdate(
-            { assignmentId, userId },
-            {
-                grade,
-                feedback,
-                gradedAt: Date.now(),
-                status: 'graded'
-            },
-            { new: true }
-        );
-
+        // Get submission to find assignment and validate score
+        const submission = await AssignmentSubmission.findById(submissionId);
         if (!submission) {
             return res.status(404).json({ error: 'Submission not found' });
         }
 
-        res.json({ message: 'Assignment graded successfully' });
+        // Get assignment to check maxScore
+        const assignment = await Assignment.findById(submission.assignmentId);
+        if (score > assignment.maxScore) {
+            return res.status(400).json({ error: `Score cannot exceed ${assignment.maxScore}` });
+        }
+
+        // Update submission
+        submission.score = score;
+        submission.feedback = feedback || '';
+        submission.gradedAt = Date.now();
+        submission.gradedBy = gradedBy;
+        submission.status = 'graded';
+        await submission.save();
+
+        // Recalculate proportional assignment marks for this student
+        const courseId = submission.courseId;
+        const userId = submission.userId;
+
+        // Get all graded submissions for this student in this course
+        const allSubmissions = await AssignmentSubmission.find({
+            courseId,
+            userId,
+            status: 'graded'
+        });
+
+        // Get all assignments for this course to get maxScores
+        const assignments = await Assignment.find({ courseId });
+        const assignmentMap = {};
+        assignments.forEach(a => {
+            assignmentMap[a._id.toString()] = a.maxScore;
+        });
+
+        // Calculate proportional marks
+        let totalEarned = 0;
+        let totalPossible = 0;
+        allSubmissions.forEach(sub => {
+            totalEarned += sub.score || 0;
+            totalPossible += assignmentMap[sub.assignmentId.toString()] || 0;
+        });
+
+        const assignmentMarks = totalPossible > 0 ? (totalEarned / totalPossible) * 25 : 0;
+
+        // Update enrollment
+        const enrollment = await Enrollment.findOne({ courseId, userId });
+        if (enrollment) {
+            enrollment.assignmentMarks = Math.round(assignmentMarks * 100) / 100; // Round to 2 decimals
+
+            // Recalculate total grade
+            const videoMarks = enrollment.videoMarks || 0;
+            const quizMarks = enrollment.quizMarks || 0;
+            enrollment.totalGrade = videoMarks + enrollment.assignmentMarks + quizMarks;
+            enrollment.progress = Math.round(enrollment.totalGrade);
+
+            await enrollment.save();
+        }
+
+        res.json({
+            message: 'Assignment graded successfully',
+            submission,
+            assignmentMarks: enrollment ? enrollment.assignmentMarks : 0
+        });
     } catch (error) {
         console.error('Error grading assignment:', error);
-        res.status(500).json({ error: 'Failed to grade assignment' });
-
-        // Get submissions for an assignment (Teacher)
-        app.get('/api/courses/:courseId/assignments/:assignmentId/submissions', async (req, res) => {
-            try {
-                const { assignmentId } = req.params;
-                const submissions = await AssignmentSubmission.find({ assignmentId });
-                res.json(submissions);
-            } catch (error) {
-                console.error('Error fetching submissions:', error);
-                res.status(500).json({ error: 'Failed to fetch submissions' });
-            }
-        });
+        res.status(500).json({ error: 'Failed to grade assignment', details: error.message });
     }
 });
 
-// Get all submissions for a student
+// Get submissions for an assignment (Teacher)
+app.get('/api/courses/:courseId/assignments/:assignmentId/submissions', async (req, res) => {
+    try {
+        const { assignmentId } = req.params;
+        const submissions = await AssignmentSubmission.find({ assignmentId });
+        res.json(submissions);
+    } catch (error) {
+        console.error('Error fetching submissions:', error);
+        res.status(500).json({ error: 'Failed to fetch submissions' });
+    }
+});
+
+// Get student submissions for a specific course
+app.get('/api/assignments/my-submissions/:userId/:courseId', async (req, res) => {
+    try {
+        const { userId, courseId } = req.params;
+        const submissions = await AssignmentSubmission.find({ userId, courseId })
+            .populate('assignmentId')
+            .sort({ submittedAt: -1 });
+        res.json(submissions);
+    } catch (error) {
+        console.error('Error fetching student submissions:', error);
+        res.status(500).json({ error: 'Failed to fetch submissions', details: error.message });
+    }
+});
+
+// Get all submissions for a student (all courses)
 app.get('/api/student/:studentId/submissions', async (req, res) => {
     try {
         const { studentId } = req.params;
@@ -484,7 +568,244 @@ app.get('/api/student/:studentId/submissions', async (req, res) => {
     }
 });
 
+// ==================== GRADEBOOK API ====================
+
+// Get gradebook for a course (Teacher)
+app.get('/api/courses/:courseId/gradebook', async (req, res) => {
+    try {
+        const { courseId } = req.params;
+
+        // Get course info
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ error: 'Course not found' });
+        }
+
+        // Get all enrollments for this course
+        const enrollments = await Enrollment.find({ courseId }).populate('userId', 'displayName email');
+
+        // Get all assignments for this course
+        const assignments = await Assignment.find({ courseId }).sort({ createdAt: 1 });
+
+        // Get all quizzes for this course
+        const quizzes = await Quiz.find({ courseId }).sort({ createdAt: 1 });
+
+        // Build gradebook data for each student
+        const gradebookData = await Promise.all(enrollments.map(async (enrollment) => {
+            const userId = enrollment.userId;
+
+            // Get assignment submissions
+            const assignmentSubmissions = await AssignmentSubmission.find({
+                userId: typeof userId === 'object' ? userId._id : userId,
+                courseId
+            }).populate('assignmentId');
+
+            // Get quiz attempts
+            const quizAttempts = await QuizAttempt.find({
+                userId: typeof userId === 'object' ? userId._id : userId,
+                courseId
+            }).populate('quizId');
+
+            // Map assignments to scores
+            const assignment1 = assignments[0] ? (assignmentSubmissions.find(s => s.assignmentId?._id?.toString() === assignments[0]._id.toString())?.score || null) : null;
+            const assignment2 = assignments[1] ? (assignmentSubmissions.find(s => s.assignmentId?._id?.toString() === assignments[1]._id.toString())?.score || null) : null;
+
+            // Map quizzes to scores
+            const quiz1 = quizzes[0] ? (quizAttempts.find(a => a.quizId?._id?.toString() === quizzes[0]._id.toString())?.score || null) : null;
+            const quiz2 = quizzes[1] ? (quizAttempts.find(a => a.quizId?._id?.toString() === quizzes[1]._id.toString())?.score || null) : null;
+            const quiz3 = quizzes[2] ? (quizAttempts.find(a => a.quizId?._id?.toString() === quizzes[2]._id.toString())?.score || null) : null;
+
+            return {
+                enrollmentId: enrollment._id,
+                studentId: typeof userId === 'object' ? userId._id : userId,
+                studentName: typeof userId === 'object' ? (userId.displayName || userId.email) : 'Unknown',
+                videoMark: enrollment.videoMarks || 0,
+                assignment1: assignment1,
+                assignment1MaxScore: assignments[0]?.maxScore || 100,
+                assignment2: assignment2,
+                assignment2MaxScore: assignments[1]?.maxScore || 100,
+                assignmentTotal: enrollment.assignmentMarks || 0,
+                quiz1: quiz1,
+                quiz1MaxScore: quizzes[0]?.totalQuestions || 0,
+                quiz2: quiz2,
+                quiz2MaxScore: quizzes[1]?.totalQuestions || 0,
+                quiz3: quiz3,
+                quiz3MaxScore: quizzes[2]?.totalQuestions || 0,
+                quizTotal: enrollment.quizMarks || 0,
+                finalTotal: enrollment.totalGrade || 0
+            };
+        }));
+
+        res.json({
+            course: {
+                id: course._id,
+                title: course.title
+            },
+            assignments: assignments.map(a => ({ id: a._id, title: a.title, maxScore: a.maxScore })),
+            quizzes: quizzes.map(q => ({ id: q._id, title: q.title, totalQuestions: q.totalQuestions })),
+            students: gradebookData
+        });
+    } catch (error) {
+        console.error('Error fetching gradebook:', error);
+        res.status(500).json({ error: 'Failed to fetch gradebook', details: error.message });
+    }
+});
+
+// Update assignment marks for a student (Teacher)
+app.put('/api/enrollments/:enrollmentId/assignment-marks', async (req, res) => {
+    try {
+        const { enrollmentId } = req.params;
+        const { assignment1Score, assignment2Score, assignment1Id, assignment2Id } = req.body;
+
+        // Get enrollment
+        const enrollment = await Enrollment.findById(enrollmentId);
+        if (!enrollment) {
+            return res.status(404).json({ error: 'Enrollment not found' });
+        }
+
+        const userId = enrollment.userId;
+        const courseId = enrollment.courseId;
+
+        // Update or create assignment 1 submission
+        if (assignment1Id && assignment1Score !== null && assignment1Score !== undefined) {
+            const assignment1 = await Assignment.findById(assignment1Id);
+            if (assignment1Score > assignment1.maxScore) {
+                return res.status(400).json({ error: `Assignment 1 score cannot exceed ${assignment1.maxScore}` });
+            }
+
+            await AssignmentSubmission.findOneAndUpdate(
+                { assignmentId: assignment1Id, userId },
+                {
+                    assignmentId: assignment1Id,
+                    userId,
+                    courseId,
+                    score: assignment1Score,
+                    status: 'graded',
+                    gradedAt: new Date(),
+                    driveLink: 'Manual entry by teacher'
+                },
+                { upsert: true, new: true }
+            );
+        }
+
+        // Update or create assignment 2 submission
+        if (assignment2Id && assignment2Score !== null && assignment2Score !== undefined) {
+            const assignment2 = await Assignment.findById(assignment2Id);
+            if (assignment2Score > assignment2.maxScore) {
+                return res.status(400).json({ error: `Assignment 2 score cannot exceed ${assignment2.maxScore}` });
+            }
+
+            await AssignmentSubmission.findOneAndUpdate(
+                { assignmentId: assignment2Id, userId },
+                {
+                    assignmentId: assignment2Id,
+                    userId,
+                    courseId,
+                    score: assignment2Score,
+                    status: 'graded',
+                    gradedAt: new Date(),
+                    driveLink: 'Manual entry by teacher'
+                },
+                { upsert: true, new: true }
+            );
+        }
+
+        // Recalculate assignment marks (proportional)
+        const allSubmissions = await AssignmentSubmission.find({ userId, courseId, status: 'graded' }).populate('assignmentId');
+
+        let totalEarned = 0;
+        let totalPossible = 0;
+
+        allSubmissions.forEach(submission => {
+            if (submission.score !== null && submission.assignmentId) {
+                totalEarned += submission.score;
+                totalPossible += submission.assignmentId.maxScore;
+            }
+        });
+
+        const assignmentMarks = totalPossible > 0 ? (totalEarned / totalPossible) * 25 : 0;
+
+        // Update enrollment
+        enrollment.assignmentMarks = assignmentMarks;
+        enrollment.totalGrade = (enrollment.videoMarks || 0) + assignmentMarks + (enrollment.quizMarks || 0);
+        enrollment.progress = Math.round(enrollment.totalGrade);
+        await enrollment.save();
+
+        res.json({
+            success: true,
+            enrollment: {
+                assignmentMarks: enrollment.assignmentMarks,
+                totalGrade: enrollment.totalGrade
+            }
+        });
+    } catch (error) {
+        console.error('Error updating assignment marks:', error);
+        res.status(500).json({ error: 'Failed to update assignment marks', details: error.message });
+    }
+});
+
+// Get all grades for a student (Student view)
+app.get('/api/students/:userId/grades', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Get all enrollments for this student
+        const enrollments = await Enrollment.find({ userId }).populate('courseId');
+
+        // Build grades data for each course
+        const gradesData = await Promise.all(enrollments.map(async (enrollment) => {
+            const courseId = enrollment.courseId._id;
+
+            // Get assignments for this course
+            const assignments = await Assignment.find({ courseId }).sort({ createdAt: 1 });
+
+            // Get quizzes for this course
+            const quizzes = await Quiz.find({ courseId }).sort({ createdAt: 1 });
+
+            // Get assignment submissions
+            const assignmentSubmissions = await AssignmentSubmission.find({ userId, courseId }).populate('assignmentId');
+
+            // Get quiz attempts
+            const quizAttempts = await QuizAttempt.find({ userId, courseId }).populate('quizId');
+
+            // Map assignments to scores
+            const assignment1 = assignments[0] ? (assignmentSubmissions.find(s => s.assignmentId?._id?.toString() === assignments[0]._id.toString())?.score || null) : null;
+            const assignment2 = assignments[1] ? (assignmentSubmissions.find(s => s.assignmentId?._id?.toString() === assignments[1]._id.toString())?.score || null) : null;
+
+            // Map quizzes to scores
+            const quiz1 = quizzes[0] ? (quizAttempts.find(a => a.quizId?._id?.toString() === quizzes[0]._id.toString())?.score || null) : null;
+            const quiz2 = quizzes[1] ? (quizAttempts.find(a => a.quizId?._id?.toString() === quizzes[1]._id.toString())?.score || null) : null;
+            const quiz3 = quizzes[2] ? (quizAttempts.find(a => a.quizId?._id?.toString() === quizzes[2]._id.toString())?.score || null) : null;
+
+            return {
+                courseId: courseId,
+                courseName: enrollment.courseId.title,
+                videoMark: enrollment.videoMarks || 0,
+                assignment1: assignment1,
+                assignment1MaxScore: assignments[0]?.maxScore || 100,
+                assignment2: assignment2,
+                assignment2MaxScore: assignments[1]?.maxScore || 100,
+                assignmentTotal: enrollment.assignmentMarks || 0,
+                quiz1: quiz1,
+                quiz1MaxScore: quizzes[0]?.totalQuestions || 0,
+                quiz2: quiz2,
+                quiz2MaxScore: quizzes[1]?.totalQuestions || 0,
+                quiz3: quiz3,
+                quiz3MaxScore: quizzes[2]?.totalQuestions || 0,
+                quizTotal: enrollment.quizMarks || 0,
+                finalTotal: enrollment.totalGrade || 0
+            };
+        }));
+
+        res.json({ courses: gradesData });
+    } catch (error) {
+        console.error('Error fetching student grades:', error);
+        res.status(500).json({ error: 'Failed to fetch grades', details: error.message });
+    }
+});
+
 // ==================== QUIZZES API ====================
+
 
 // Get all quizzes for a course
 app.get('/api/courses/:courseId/quizzes', async (req, res) => {
@@ -547,6 +868,49 @@ app.post('/api/courses/:courseId/quizzes/:quizId/attempt', async (req, res) => {
 
         // Update quiz statistics
         await Quiz.findByIdAndUpdate(quizId, { $inc: { attempts: 1 } });
+
+        // RECALCULATE QUIZ MARKS FOR ENROLLMENT
+        const enrollment = await Enrollment.findOne({ userId, courseId });
+        if (enrollment) {
+            // Get all quizzes for the course to determine distinct quiz count/max scores
+            const allQuizzes = await Quiz.find({ courseId });
+
+            // Get all attempts for this user and course
+            const allAttempts = await QuizAttempt.find({ userId, courseId }).populate('quizId');
+
+            // Calculate total achieved score and total possible score
+            // Strategy: For each quiz, take the BEST attempt score
+            let totalEarned = 0;
+            let totalPossible = 0;
+
+            allQuizzes.forEach(quiz => {
+                // Find attempts for this specific quiz
+                const attemptsForQuiz = allAttempts.filter(a => a.quizId && a.quizId._id.toString() === quiz._id.toString());
+
+                if (attemptsForQuiz.length > 0) {
+                    // Take best score
+                    const bestScore = Math.max(...attemptsForQuiz.map(a => a.score));
+                    totalEarned += bestScore;
+                }
+                // Each quiz contributes 100% (or totalQuestions) to the total possible? 
+                // Assuming passingScore/100 logic or simply questions count. 
+                // Standard: Each quiz is worth 'totalQuestions' points usually, or normalized to 100.
+                // Let's assume each quiz is weighted equally or based on questions.
+                // To be safe and simple: Let's assume each quiz is out of 100%. 
+                // If attempting to match 'totalQuestions', we need that data.
+                // Let's use 100 per quiz to match the percentage logic commonly used.
+                totalPossible += 100;
+            });
+
+            // Calculate quiz marks out of 25
+            // If totalPossible is 0 (no quizzes), marks are 0.
+            const quizMarks = totalPossible > 0 ? (totalEarned / totalPossible) * 25 : 0;
+
+            enrollment.quizMarks = parseFloat(quizMarks.toFixed(2));
+            enrollment.totalGrade = (enrollment.videoMarks || 0) + (enrollment.assignmentMarks || 0) + enrollment.quizMarks;
+            enrollment.progress = Math.round(enrollment.totalGrade);
+            await enrollment.save();
+        }
 
         res.status(201).json(attempt);
     } catch (error) {
@@ -797,21 +1161,19 @@ app.post('/api/courses/:courseId/lectures/:lectureId/complete', async (req, res)
 
         // Calculate video marks (out of 50)
         const totalLectures = await Lecture.countDocuments({ courseId });
-        if (totalLectures > 0) {
-            enrollment.videoMarks = (enrollment.completedVideosCount / totalLectures) * 50;
-        } else {
-            enrollment.videoMarks = 50; // If no lectures, give full marks? Or 0. Let's keep it safe.
-        }
+        // Scale to 50
+        const videoMarks = totalLectures > 0 ? (enrollment.completedVideosCount / totalLectures) * 50 : 0;
 
-        // Ensure marks are numbers
-        const videoMarks = enrollment.videoMarks || 0;
+        enrollment.videoMarks = parseFloat(videoMarks.toFixed(2));
+
+        // Recalculate total grade
+        // Ensure other marks are present
         const assignmentMarks = enrollment.assignmentMarks || 0;
         const quizMarks = enrollment.quizMarks || 0;
 
-        // Update total grade
-        enrollment.totalGrade = videoMarks + assignmentMarks + quizMarks;
+        enrollment.totalGrade = enrollment.videoMarks + assignmentMarks + quizMarks;
 
-        // Update progress percentage
+        // Update progress
         enrollment.progress = Math.round(enrollment.totalGrade);
 
         await enrollment.save();
@@ -820,11 +1182,12 @@ app.post('/api/courses/:courseId/lectures/:lectureId/complete', async (req, res)
             message: 'Lecture marked as completed',
             videoMarks: enrollment.videoMarks,
             totalGrade: enrollment.totalGrade,
-            progress: enrollment.progress
+            progress: enrollment.progress,
+            completedLectures: enrollment.completedLectures
         });
     } catch (error) {
         console.error('Error marking lecture as complete:', error);
-        res.status(500).json({ error: 'Failed to mark lecture as complete', details: error.message });
+        res.status(500).json({ error: 'Failed to mark lecture as complete' });
     }
 });
 
@@ -860,71 +1223,8 @@ app.get('/api/teacher/:teacherId/students', async (req, res) => {
     }
 });
 
-// ==================== GRADEBOOK API ====================
+// Legacy gradebook endpoint removed
 
-// Get gradebook for a course
-app.get('/api/courses/:courseId/gradebook', async (req, res) => {
-    try {
-        const { courseId } = req.params;
-
-        // Get all enrollments
-        const enrollments = await Enrollment.find({ courseId });
-
-        // Get all assignments
-        const assignments = await Assignment.find({ courseId });
-
-        // Get all quizzes
-        const quizzes = await Quiz.find({ courseId });
-
-        const gradebook = [];
-
-        for (const enrollment of enrollments) {
-            const studentId = enrollment.userId;
-            const studentGrades = {
-                studentId,
-                assignments: [],
-                quizzes: [],
-                totalScore: 0
-            };
-
-            // Get assignment submissions
-            for (const assignment of assignments) {
-                const submission = await AssignmentSubmission.findOne({
-                    assignmentId: assignment._id,
-                    userId: studentId
-                });
-
-                studentGrades.assignments.push({
-                    assignmentId: assignment._id.toString(),
-                    title: assignment.title,
-                    maxScore: assignment.maxScore,
-                    grade: submission ? submission.grade : null
-                });
-            }
-
-            // Get quiz attempts
-            for (const quiz of quizzes) {
-                const attempt = await QuizAttempt.findOne({
-                    quizId: quiz._id,
-                    userId: studentId
-                }).sort({ submittedAt: -1 });
-
-                studentGrades.quizzes.push({
-                    quizId: quiz._id.toString(),
-                    title: quiz.title,
-                    score: attempt ? attempt.score : null
-                });
-            }
-
-            gradebook.push(studentGrades);
-        }
-
-        res.json(gradebook);
-    } catch (error) {
-        console.error('Error fetching gradebook:', error);
-        res.status(500).json({ error: 'Failed to fetch gradebook' });
-    }
-});
 
 // Health check
 app.get('/api/health', (req, res) => {
